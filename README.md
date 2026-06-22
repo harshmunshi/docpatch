@@ -3,9 +3,9 @@
 **Surgical LLM document editing.** Parse any document into an addressable tree, locate the right node, send only that node to a model, splice the result back — losslessly.
 
 ```bash
-pip install docpatch                      # Markdown + JSON
-pip install "docpatch[anthropic]"         # + Anthropic client
-pip install "docpatch[openai,anthropic]"  # + OpenAI client
+pip install git+https://github.com/docpatch/docpatch.git
+pip install "docpatch[anthropic] @ git+https://github.com/docpatch/docpatch.git"
+pip install "docpatch[openai,anthropic] @ git+https://github.com/docpatch/docpatch.git"
 ```
 
 ---
