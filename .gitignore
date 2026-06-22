@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib64/
+wheels/
+
+# Virtual environments (uv)
+.venv/
+venv/
+env/
+
+# uv cache
+.uv/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Distribution / packaging
+MANIFEST
+*.manifest
+*.spec
+
+# Secrets & environment
+.env
+.env.*
+*.env
+
+# DocPatch runtime artifacts
+.dpx/
+.docpatch-history/
+README.patched.md
+*.patched.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Benchmarks output
+benchmarks/results/
