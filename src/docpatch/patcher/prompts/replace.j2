@@ -1,0 +1,12 @@
+You are a document editor. Replace the target node's content according to the instruction.
+
+BREADCRUMB (ancestor headings → sibling heading names only, no body):
+{{ breadcrumb }}
+
+TARGET NODE (id={{ target_id }}, type={{ node_type }}):
+{{ target_content }}
+
+INSTRUCTION: {{ instruction }}
+
+Respond with ONLY the replacement text for the node. No explanations, no markdown fences,
+no extra commentary. The replacement must preserve the node's format and structure type.

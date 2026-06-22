@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocPatch — surgical LLM document editing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET + TOKENS ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper:            #FBFAF7;
+  --ink:              #0E1116;
+  --graphite:         #5C6573;
+  --hairline:         #E2DED2;
+  --blueprint:        #1B4FF5;
+  --paper-deep:       #F4F1EA;
+  --ink-soft:         #2A2E36;
+  --graphite-soft:    #8A8F99;
+  --hairline-strong:  #D4CFC0;
+  --blueprint-soft:   rgba(27, 79, 245, 0.08);
+  --display:          'Fraunces', Georgia, serif;
+  --body:             'Inter', system-ui, -apple-system, sans-serif;
+  --mono:             'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --maxw:             1240px;
+  --gutter:           clamp(20px, 4vw, 56px);
+  --ease-pop:         cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-draw:        cubic-bezier(0.6, 0.1, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  background-image: radial-gradient(circle at 1px 1px, rgba(14,17,22,0.06) 1px, transparent 0);
+  background-size: 28px 28px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LAYOUT ===== */
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+section.block {
+  padding: clamp(72px, 10vw, 120px) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+/* ===== SECTION STRUCTURE ===== */
+.section-head {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 32px;
+  margin-bottom: 56px;
+  align-items: start;
+}
+
+.section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--graphite);
+  letter-spacing: 0.08em;
+  border-top: 1px solid var(--ink);
+  padding-top: 8px;
+  text-transform: uppercase;
+  padding-right: 16px;
+  margin-top: 8px;
+}
+
+.section-title {
+  font-family: var(--display);
+  font-size: clamp(32px, 4.4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+
+.section-lede {
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--graphite);
+  max-width: 56ch;
+  letter-spacing: -0.005em;
+}
+
+/* ===== TYPOGRAPHY UTILITIES ===== */
+.eyebrow {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--graphite);
+  margin-bottom: 16px;
+}
+
+h2 em, h1 em { font-style: italic; color: var(--blueprint); font-weight: 400; }
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 13px 22px;
+  border-radius: 5px;
+  font-family: var(--body);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+}
+.btn-primary:hover { background: var(--blueprint); transform: translateY(-1px); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--ink);
+  padding: 13px 18px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--hairline-strong);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 140ms ease;
+}
+.btn-secondary:hover { border-color: var(--ink); }
+
+/* ===== TAG ===== */
+.tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--graphite);
+  border: 1px solid var(--hairline-strong);
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* ===== CODE BOX ===== */
+.codebox {
+  background: var(--ink);
+  color: #F2EFE8;
+  border-radius: 10px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  padding: 24px 28px;
+  overflow-x: auto;
+  position: relative;
+}
+.codebox pre { margin: 0; }
+.codebox .k1 { color: #9BC1FF; }      /* keyword */
+.codebox .s1 { color: #C8E6A8; }      /* string */
+.codebox .c1 { color: #7D7669; font-style: italic; }  /* comment */
+.codebox .p1 { color: #E2C28A; }      /* property / param */
+.codebox .fn { color: #FFD6A5; }      /* function */
+.codebox .cm { color: var(--graphite-soft); font-style: italic; } /* shell comment */
+.codebox-lang {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--graphite-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ===== SHELL COMMAND ===== */
+.shell-cmd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ink);
+  border-radius: 8px;
+  padding: 14px 20px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: #F2EFE8;
+}
+.shell-cmd .prompt { color: var(--graphite-soft); user-select: none; }
+.shell-cmd .cmd { color: #C8E6A8; }
+
+/* ===== CARD ===== */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 28px;
+  transition: border-color 200ms ease, transform 200ms ease;
+}
+.card:hover { border-color: var(--hairline-strong); transform: translateY(-2px); }
+
+/* ===== TABS ===== */
+.tab-list {
+  display: flex;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 0;
+  gap: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--graphite);
+  padding: 10px 16px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+.tab-btn:hover { color: var(--ink); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== CTA INVERTED ===== */
+.cta-inverted {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 14px;
+  padding: clamp(40px, 6vw, 80px) clamp(32px, 5vw, 64px);
+  background-image: radial-gradient(circle at 1px 1px, rgba(251,250,247,0.08) 1px, transparent 0);
+  background-size: 22px 22px;
+  margin-bottom: clamp(72px, 10vw, 120px);
+}
+.cta-inverted .eyebrow { color: rgba(251,250,247,0.35); }
+.cta-inverted h2 {
+  font-family: var(--display);
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.022em;
+  font-weight: 400;
+  margin-bottom: 18px;
+}
+.cta-inverted h2 em { color: #9BC1FF; }
+.cta-inverted p {
+  color: rgba(251,250,247,0.55);
+  font-size: 15px;
+  max-width: 52ch;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.cta-inverted .btn-primary { background: var(--paper); color: var(--ink); }
+.cta-inverted .btn-primary:hover { background: #9BC1FF; }
+
+/* ===== REVEAL ANIMATION ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 700ms ease, transform 700ms ease;
+}
+.reveal.is-in { opacity: 1; transform: translateY(0); }
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes drawPath {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  [style*="animation"] { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+}
+
+/* ===== NAV ===== */
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(251,250,247,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.nav-logo-diamond {
+  width: 14px;
+  height: 14px;
+  background: var(--blueprint);
+  transform: rotate(45deg);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.nav-logo-text {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.nav-links a {
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--graphite);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links .btn-secondary { padding: 7px 14px; font-size: 12px; }
+@media (max-width: 620px) {
+  .nav-links a:not(.btn-secondary) { display: none; }
+}
+
+/* ===== HERO ===== */
+.hero { padding: clamp(64px, 12vw, 128px) 0 clamp(48px, 8vw, 96px); }
+.hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 56px;
+  align-items: center;
+}
+.hero h1 {
+  font-family: var(--display);
+  font-size: clamp(44px, 6.5vw, 82px);
+  line-height: 0.97;
+  letter-spacing: -0.025em;
+  font-weight: 400;
+  margin-bottom: 24px;
+}
+.hero-lede {
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--graphite);
+  max-width: 50ch;
+  margin-bottom: 36px;
+  letter-spacing: -0.005em;
+}
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-diagram { width: 100%; }
+.hero-diagram svg { width: 100%; height: auto; display: block; }
+@media (max-width: 860px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 44px; }
+  .hero-diagram { order: -1; }
+}
+
+/* ===== SECTION 01: INSTALL ===== */
+.install-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.install-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.what-you-get {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.what-you-get li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.what-you-get li::before {
+  content: "—";
+  font-family: var(--mono);
+  color: var(--graphite-soft);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+.what-you-get .item-title { font-weight: 500; display: block; }
+.what-you-get .item-desc { color: var(--graphite); font-size: 13px; }
+@media (max-width: 700px) { .install-cols { grid-template-columns: 1fr; } }
+
+/* ===== SECTION 02: INTEGRATION ===== */
+.integration-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 24px;
+  padding: 40px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.step:first-child { padding-top: 0; }
+.step:last-child { border-bottom: none; padding-bottom: 0; }
+.step-ord {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--graphite-soft);
+  border-top: 1px solid var(--hairline-strong);
+  padding-top: 6px;
+  letter-spacing: 0.04em;
+  margin-top: 5px;
+}
+.step h3 {
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-weight: 400;
+  margin-bottom: 10px;
+}
+.step p {
+  font-size: 14px;
+  color: var(--graphite);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 62ch;
+}
+.step p:last-child { margin-bottom: 0; }
+
+/* ===== SECTION 03: PLAYGROUND ===== */
+.playground-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.panel-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--graphite);
+  margin-bottom: 10px;
+}
+.playground-textarea {
+  width: 100%;
+  min-height: 380px;
+  background: var(--paper-deep);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+.playground-textarea:focus { border-color: var(--hairline-strong); }
+.playground-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.playground-stats {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--graphite-soft);
+  letter-spacing: 0.04em;
+}
+.node-tree {
+  min-height: 380px;
+  max-height: 540px;
+  background: var(--paper-deep);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 14px;
+  overflow-y: auto;
+}
+.tree-placeholder {
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.tree-placeholder span {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--graphite-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.node-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  transition: background 100ms ease;
+}
+.node-row:hover { background: rgba(14,17,22,0.04); }
+.node-indent-line {
+  flex-shrink: 0;
+  width: 14px;
+  align-self: stretch;
+  border-left: 1px solid var(--hairline-strong);
+  margin-left: 6px;
+}
+.node-type {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--hairline-strong);
+  color: var(--graphite);
+  background: var(--paper);
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.node-type.t-document { border-color: var(--ink); color: var(--ink); }
+.node-type.t-heading   { border-color: var(--blueprint); color: var(--blueprint); background: var(--blueprint-soft); }
+.node-type.t-code      { background: var(--ink); color: #C8E6A8; border-color: var(--ink); }
+.node-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.node-id {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--graphite-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+.node-content {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+@media (max-width: 800px) {
+  .playground-grid { grid-template-columns: 1fr; }
+  .section-head { grid-template-columns: 1fr; gap: 14px; }
+  .step { grid-template-columns: 1fr; gap: 10px; }
+  .step-ord { border-top: none; padding-top: 0; margin-top: 0; }
+}
+
+/* ===== STAT CARDS GRID ===== */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .stat-cards { grid-template-columns: 1fr; }
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  border-top: 1px solid var(--hairline);
+  padding: 28px 0;
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--graphite-soft);
+  letter-spacing: 0.04em;
+}
+.footer-links { display: flex; gap: 20px; }
+.footer-links a {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--graphite-soft);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+}
+.footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="nav-bar">
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-diamond"></div>
+      <span class="nav-logo-text">DocPatch</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#install">Install</a>
+      <a href="#integration">Docs</a>
+      <a href="#playground">Playground</a>
+      <a href="#efficiency">Efficiency</a>
+      <a href="#speed">Speed</a>
+      <a href="https://github.com/docpatch/docpatch" class="btn-secondary">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div>
+        <span class="eyebrow">v0.1 · python 3.12 · apache-2.0</span>
+        <h1>Edit documents <em>surgically.</em></h1>
+        <p class="hero-lede">DocPatch turns any document into an addressable tree so an LLM can edit one node at a time and put the result back losslessly.</p>
+        <div class="hero-actions">
+          <a href="#install" class="btn-primary">Get started</a>
+          <a href="#playground" class="btn-secondary">Try playground →</a>
+        </div>
+      </div>
+
+      <!-- Pipeline SVG diagram -->
+      <div class="hero-diagram">
+        <svg viewBox="0 0 700 148" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DocPatch pipeline: input file is parsed into a DocTree, a node is located and patched via LLM, then spliced back to output">
+
+          <!-- Box 1: INPUT FILE -->
+          <g style="opacity:0; animation: popIn 0.4s 0.1s cubic-bezier(0.2,0.8,0.2,1) forwards;">
+            <rect x="2" y="18" width="106" height="88" rx="6" fill="#FBFAF7" stroke="#E2DED2" stroke-width="1"/>
+            <rect x="16" y="32" width="62" height="5" rx="2" fill="#0E1116" opacity="0.45"/>
+            <rect x="16" y="44" width="74" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="16" y="51" width="60" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="16" y="58" width="68" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="16" y="68" width="62" height="5" rx="2" fill="#0E1116" opacity="0.25"/>
+            <rect x="16" y="79" width="72" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="16" y="86" width="54" height="3" rx="1.5" fill="#D4CFC0"/>
+            <text x="55" y="117" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#8A8F99" text-anchor="middle" letter-spacing="0.09em">INPUT</text>
+          </g>
+
+          <!-- Arrow 1 line -->
+          <line x1="108" y1="62" x2="143" y2="62" stroke="#1B4FF5" stroke-width="1.5" style="stroke-dasharray:40; stroke-dashoffset:40; animation: drawPath 0.5s 0.5s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+          <polygon points="137,57 145,62 137,67" fill="#1B4FF5" style="opacity:0; animation: fadeIn 0.2s 0.95s ease forwards;"/>
+          <text x="125" y="53" font-family="JetBrains Mono,monospace" font-size="7.5" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.07em" style="opacity:0; animation: fadeIn 0.3s 1.0s ease forwards;">parse</text>
+
+          <!-- Box 2: DOCTREE -->
+          <g style="opacity:0; animation: popIn 0.4s 0.8s cubic-bezier(0.2,0.8,0.2,1) forwards;">
+            <rect x="145" y="18" width="106" height="88" rx="6" fill="#FBFAF7" stroke="#E2DED2" stroke-width="1"/>
+            <!-- Root -->
+            <rect x="182" y="28" width="34" height="13" rx="3" fill="#0E1116" opacity="0.1"/>
+            <text x="199" y="38" font-family="JetBrains Mono,monospace" font-size="6.5" fill="#0E1116" opacity="0.55" text-anchor="middle">DOC</text>
+            <!-- Trunk -->
+            <line x1="199" y1="41" x2="199" y2="50" stroke="#D4CFC0" stroke-width="1"/>
+            <!-- Branch -->
+            <line x1="171" y1="50" x2="227" y2="50" stroke="#D4CFC0" stroke-width="1"/>
+            <!-- H1 child -->
+            <line x1="171" y1="50" x2="171" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <rect x="155" y="58" width="32" height="12" rx="3" fill="#E2DED2"/>
+            <text x="171" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#5C6573" text-anchor="middle">H1</text>
+            <!-- P child -->
+            <line x1="199" y1="50" x2="199" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <rect x="183" y="58" width="32" height="12" rx="3" fill="#E2DED2"/>
+            <text x="199" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#5C6573" text-anchor="middle">P</text>
+            <!-- H2 child -->
+            <line x1="227" y1="50" x2="227" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <rect x="211" y="58" width="32" height="12" rx="3" fill="#E2DED2"/>
+            <text x="227" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#5C6573" text-anchor="middle">H2</text>
+            <text x="198" y="117" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#8A8F99" text-anchor="middle" letter-spacing="0.09em">DOCTREE</text>
+          </g>
+
+          <!-- Arrow 2 line -->
+          <line x1="251" y1="62" x2="286" y2="62" stroke="#1B4FF5" stroke-width="1.5" style="stroke-dasharray:40; stroke-dashoffset:40; animation: drawPath 0.5s 1.2s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+          <polygon points="280,57 288,62 280,67" fill="#1B4FF5" style="opacity:0; animation: fadeIn 0.2s 1.65s ease forwards;"/>
+          <text x="268" y="53" font-family="JetBrains Mono,monospace" font-size="7.5" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.07em" style="opacity:0; animation: fadeIn 0.3s 1.7s ease forwards;">locate</text>
+
+          <!-- Box 3: NODE (blueprint highlight) -->
+          <g style="opacity:0; animation: popIn 0.4s 1.5s cubic-bezier(0.2,0.8,0.2,1) forwards;">
+            <rect x="288" y="22" width="106" height="80" rx="6" fill="rgba(27,79,245,0.06)" stroke="#1B4FF5" stroke-width="1.5"/>
+            <text x="341" y="40" font-family="JetBrains Mono,monospace" font-size="8" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.1em">HEADING</text>
+            <rect x="308" y="46" width="66" height="5" rx="2" fill="#1B4FF5" opacity="0.28"/>
+            <rect x="308" y="55" width="52" height="4" rx="2" fill="#1B4FF5" opacity="0.17"/>
+            <rect x="308" y="63" width="59" height="4" rx="2" fill="#1B4FF5" opacity="0.1"/>
+            <text x="341" y="117" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.09em">NODE</text>
+          </g>
+
+          <!-- Arrow 3 line -->
+          <line x1="394" y1="62" x2="429" y2="62" stroke="#1B4FF5" stroke-width="1.5" style="stroke-dasharray:40; stroke-dashoffset:40; animation: drawPath 0.5s 1.9s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+          <polygon points="423,57 431,62 423,67" fill="#1B4FF5" style="opacity:0; animation: fadeIn 0.2s 2.35s ease forwards;"/>
+          <text x="411" y="53" font-family="JetBrains Mono,monospace" font-size="7.5" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.07em" style="opacity:0; animation: fadeIn 0.3s 2.4s ease forwards;">patch</text>
+
+          <!-- LLM annotation below node box -->
+          <g style="opacity:0; animation: fadeIn 0.4s 2.0s ease forwards;">
+            <rect x="298" y="108" width="86" height="22" rx="4" fill="#FBFAF7" stroke="#D4CFC0" stroke-width="1"/>
+            <text x="341" y="119" font-family="JetBrains Mono,monospace" font-size="7" fill="#8A8F99" text-anchor="middle" letter-spacing="0.04em">↑ LLM sees only this</text>
+          </g>
+
+          <!-- Box 4: SPLICE (tree with patched node) -->
+          <g style="opacity:0; animation: popIn 0.4s 2.1s cubic-bezier(0.2,0.8,0.2,1) forwards;">
+            <rect x="431" y="18" width="106" height="88" rx="6" fill="#FBFAF7" stroke="#E2DED2" stroke-width="1"/>
+            <rect x="468" y="28" width="34" height="13" rx="3" fill="#0E1116" opacity="0.1"/>
+            <text x="485" y="38" font-family="JetBrains Mono,monospace" font-size="6.5" fill="#0E1116" opacity="0.55" text-anchor="middle">DOC</text>
+            <line x1="485" y1="41" x2="485" y2="50" stroke="#D4CFC0" stroke-width="1"/>
+            <line x1="457" y1="50" x2="513" y2="50" stroke="#D4CFC0" stroke-width="1"/>
+            <line x1="457" y1="50" x2="457" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <!-- H1' node — blueprint -->
+            <rect x="441" y="58" width="32" height="12" rx="3" fill="rgba(27,79,245,0.14)" stroke="#1B4FF5" stroke-width="0.8"/>
+            <text x="457" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#1B4FF5" text-anchor="middle">H1′</text>
+            <line x1="485" y1="50" x2="485" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <rect x="469" y="58" width="32" height="12" rx="3" fill="#E2DED2"/>
+            <text x="485" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#5C6573" text-anchor="middle">P</text>
+            <line x1="513" y1="50" x2="513" y2="58" stroke="#D4CFC0" stroke-width="1"/>
+            <rect x="497" y="58" width="32" height="12" rx="3" fill="#E2DED2"/>
+            <text x="513" y="67" font-family="JetBrains Mono,monospace" font-size="6" fill="#5C6573" text-anchor="middle">H2</text>
+            <text x="484" y="117" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#8A8F99" text-anchor="middle" letter-spacing="0.09em">SPLICE</text>
+          </g>
+
+          <!-- Arrow 4 line -->
+          <line x1="537" y1="62" x2="572" y2="62" stroke="#1B4FF5" stroke-width="1.5" style="stroke-dasharray:40; stroke-dashoffset:40; animation: drawPath 0.5s 2.6s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+          <polygon points="566,57 574,62 566,67" fill="#1B4FF5" style="opacity:0; animation: fadeIn 0.2s 3.05s ease forwards;"/>
+          <text x="554" y="53" font-family="JetBrains Mono,monospace" font-size="7.5" fill="#1B4FF5" text-anchor="middle" letter-spacing="0.07em" style="opacity:0; animation: fadeIn 0.3s 3.1s ease forwards;">emit</text>
+
+          <!-- Box 5: OUTPUT FILE -->
+          <g style="opacity:0; animation: popIn 0.4s 2.9s cubic-bezier(0.2,0.8,0.2,1) forwards;">
+            <rect x="574" y="18" width="106" height="88" rx="6" fill="#FBFAF7" stroke="#E2DED2" stroke-width="1"/>
+            <!-- Changed heading in blueprint -->
+            <rect x="588" y="32" width="62" height="5" rx="2" fill="#1B4FF5" opacity="0.4"/>
+            <rect x="588" y="44" width="74" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="588" y="51" width="60" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="588" y="58" width="68" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="588" y="68" width="62" height="5" rx="2" fill="#0E1116" opacity="0.25"/>
+            <rect x="588" y="79" width="72" height="3" rx="1.5" fill="#D4CFC0"/>
+            <rect x="588" y="86" width="54" height="3" rx="1.5" fill="#D4CFC0"/>
+            <text x="627" y="117" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#8A8F99" text-anchor="middle" letter-spacing="0.09em">OUTPUT</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 01: INSTALL ===== -->
+<section class="block" id="install">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">01 / Install</div>
+      <div>
+        <h2 class="section-title">Zero configuration.</h2>
+        <p class="section-lede">One command, deterministic environment. Optional extras for each format and LLM provider.</p>
+      </div>
+    </div>
+
+    <div class="install-cols reveal">
+      <div>
+        <div class="shell-cmd" style="margin-bottom:12px;">
+          <span class="prompt">$</span>
+          <span class="cmd">pip install docpatch</span>
+        </div>
+        <div class="shell-cmd" style="margin-bottom:12px;">
+          <span class="prompt">$</span>
+          <span class="cmd">pip install "docpatch[anthropic]"</span>
+        </div>
+        <div class="shell-cmd">
+          <span class="prompt">$</span>
+          <span class="cmd">pip install "docpatch[openai,anthropic]"</span>
+        </div>
+        <div class="install-extras" style="margin-top:20px;">
+          <span class="tag">python ≥ 3.11</span>
+          <span class="tag">pydantic v2</span>
+          <span class="tag">markdown-it-py</span>
+          <span class="tag">click</span>
+          <span class="tag">structlog</span>
+        </div>
+      </div>
+      <div>
+        <ul class="what-you-get">
+          <li>
+            <span><span class="item-title">Parse → DocTree</span><span class="item-desc">Markdown and JSON to a typed, addressable node tree with deterministic IDs and BLAKE3 fingerprints.</span></span>
+          </li>
+          <li>
+            <span><span class="item-title">Locate</span><span class="item-desc">Symbolic (regex) and semantic (LLM on heading skeleton only) locators. Composite fallback built in.</span></span>
+          </li>
+          <li>
+            <span><span class="item-title">Patch + Splice</span><span class="item-desc">ReplaceOperation sends only the target subtree to the model. Deterministic splice with structural validation.</span></span>
+          </li>
+          <li>
+            <span><span class="item-title">Storage</span><span class="item-desc">InMemoryStorage and SidecarStorage (.dpx/ bundle) out of the box.</span></span>
+          </li>
+          <li>
+            <span><span class="item-title">CLI</span><span class="item-desc"><code style="font-family:var(--mono);font-size:12px;">docpatch edit FILE "instruction"</code> — works on a fresh install.</span></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 02: INTEGRATION ===== -->
+<section class="block" id="integration">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">02 / Integration</div>
+      <div>
+        <h2 class="section-title">One import, five stages.</h2>
+        <p class="section-lede">Wire DocPatch into your agent loop in minutes. Use the convenience API or assemble the pipeline yourself.</p>
+      </div>
+    </div>
+
+    <div class="integration-steps">
+
+      <!-- Step A: Quick start -->
+      <div class="step reveal">
+        <div class="step-ord">A</div>
+        <div>
+          <h3>Convenience API</h3>
+          <p>Two functions cover the full pipeline. <code style="font-family:var(--mono);font-size:12.5px;">open_doc</code> parses a file; <code style="font-family:var(--mono);font-size:12.5px;">edit_doc</code> locates, patches, and splices.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+<span class="k1">from</span> docpatch.models.anthropic <span class="k1">import</span> AnthropicClient
+
+<span class="c1"># parse a file into an addressable DocTree</span>
+tree = <span class="fn">open_doc</span>(<span class="s1">"spec.md"</span>)
+
+<span class="c1"># wire up any ModelClient-compatible client</span>
+model = <span class="fn">AnthropicClient</span>(model=<span class="s1">"claude-haiku-4-5-20251001"</span>)
+
+<span class="c1"># locate the right node, send only that node to the model,
+# validate the result, and splice it back — losslessly</span>
+patched_tree = <span class="fn">edit_doc</span>(
+    tree,
+    <span class="s1">"Tighten the introduction section"</span>,
+    model=model,
+)
+
+<span class="c1"># serialize back to bytes — unchanged regions are untouched</span>
+<span class="k1">from</span> docpatch.parsers <span class="k1">import</span> get_parser, detect_format
+parser = <span class="fn">get_parser</span>(<span class="fn">detect_format</span>(<span class="s1">"spec.md"</span>, <span class="k1">None</span>))
+output_bytes = parser.<span class="fn">serialize</span>(patched_tree)
+open(<span class="s1">"spec.md"</span>, <span class="s1">"wb"</span>).<span class="fn">write</span>(output_bytes)</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step B: Manual pipeline -->
+      <div class="step reveal">
+        <div class="step-ord">B</div>
+        <div>
+          <h3>Manual pipeline</h3>
+          <p>For fine-grained control — custom locator thresholds, multiple patches, dry-run inspection, or swap in your own model client.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> parse, serialize
+<span class="k1">from</span> docpatch.locator <span class="k1">import</span> CompositeLocator
+<span class="k1">from</span> docpatch.patcher.replace <span class="k1">import</span> ReplaceOperation
+<span class="k1">from</span> docpatch.splicer <span class="k1">import</span> splice, validate_splice
+<span class="k1">from</span> docpatch.models.mock <span class="k1">import</span> MockModelClient
+
+<span class="c1"># 1. Parse</span>
+data = open(<span class="s1">"report.md"</span>, <span class="s1">"rb"</span>).<span class="fn">read</span>()
+tree = <span class="fn">parse</span>(data)
+
+<span class="c1"># 2. Locate — symbolic first, semantic fallback</span>
+model = <span class="fn">MockModelClient</span>(response=<span class="s1">"Rewritten content goes here."</span>)
+locator = <span class="fn">CompositeLocator</span>(model=model, threshold=<span class="p1">0.6</span>)
+result = locator.<span class="fn">locate</span>(tree, <span class="s1">"Replace the executive summary"</span>)
+
+<span class="k1">if not</span> result.node_ids:
+    <span class="k1">raise</span> <span class="fn">ValueError</span>(<span class="s1">f"Not found: {result.candidates}"</span>)
+
+<span class="c1"># 3. Patch — only the target subtree reaches the model</span>
+op = <span class="fn">ReplaceOperation</span>(max_retry=<span class="p1">3</span>)
+patch = op.<span class="fn">apply</span>(tree, result.node_ids[<span class="p1">0</span>], <span class="s1">"Tighten and clarify"</span>, model)
+
+<span class="c1"># 4. Splice — deterministic, no model call</span>
+new_tree = <span class="fn">splice</span>(tree, [patch])
+validation = <span class="fn">validate_splice</span>(tree, new_tree, [patch])
+<span class="k1">assert</span> validation.ok, validation.error
+
+<span class="c1"># 5. Serialize — unchanged regions return their exact original bytes</span>
+open(<span class="s1">"report.md"</span>, <span class="s1">"wb"</span>).<span class="fn">write</span>(<span class="fn">serialize</span>(new_tree))</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step C: CLI -->
+      <div class="step reveal">
+        <div class="step-ord">C</div>
+        <div>
+          <h3>Command-line interface</h3>
+          <p>The <code style="font-family:var(--mono);font-size:12.5px;">docpatch edit</code> command runs the full pipeline in one invocation. Use <code style="font-family:var(--mono);font-size:12.5px;">--dry-run</code> to preview before writing.</p>
+          <div class="tab-list" style="margin-top:4px;">
+            <button class="tab-btn active" data-tab="cli-basic">Basic</button>
+            <button class="tab-btn" data-tab="cli-model">With model</button>
+            <button class="tab-btn" data-tab="cli-out">Custom output</button>
+          </div>
+          <div id="cli-basic" class="tab-panel active">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">shell</span>
+              <pre><span class="c1"># uses MockModelClient by default — safe for testing</span>
+docpatch edit README.md <span class="s1">"Tighten the introduction paragraph"</span>
+
+<span class="c1"># preview without writing</span>
+docpatch edit spec.md <span class="s1">"Add a note about rate limits"</span> --dry-run</pre>
+            </div>
+          </div>
+          <div id="cli-model" class="tab-panel">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">shell</span>
+              <pre><span class="c1"># set key in env; --model selects provider</span>
+<span class="k1">export</span> DOCPATCH_API_KEY=<span class="s1">"sk-ant-..."</span>
+docpatch edit spec.md <span class="s1">"Rewrite the executive summary"</span> \
+  --model anthropic
+
+<span class="c1"># OpenAI</span>
+<span class="k1">export</span> DOCPATCH_API_KEY=<span class="s1">"sk-..."</span>
+docpatch edit data.json <span class="s1">"Update the version field to 2.0"</span> \
+  --model openai</pre>
+            </div>
+          </div>
+          <div id="cli-out" class="tab-panel">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">shell</span>
+              <pre><span class="c1"># write to a different path (original untouched)</span>
+docpatch edit spec.md <span class="s1">"Tighten section 2"</span> \
+  --model anthropic \
+  --out spec-edited.md
+
+<span class="c1"># chain: edit, then edit the result</span>
+docpatch edit spec.md <span class="s1">"Tighten intro"</span> --out /tmp/pass1.md
+docpatch edit /tmp/pass1.md <span class="s1">"Add TL;DR"</span> --out spec-final.md</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step D: Bring your own model -->
+      <div class="step reveal">
+        <div class="step-ord">D</div>
+        <div>
+          <h3>Bring your own model</h3>
+          <p>DocPatch is model-agnostic. Any object that implements the <code style="font-family:var(--mono);font-size:12.5px;">ModelClient</code> protocol works — including local models, proxies, and test doubles.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch.models.base <span class="k1">import</span> ModelClient, ModelResponse
+
+<span class="c1"># Satisfy the Protocol — no inheritance required</span>
+<span class="k1">class</span> <span class="fn">MyLLM</span>:
+    <span class="k1">def</span> <span class="fn">complete</span>(self, prompt: str, *, max_tokens: int) -> ModelResponse:
+        raw = my_local_llm.<span class="fn">generate</span>(prompt, max_tokens=max_tokens)
+        <span class="k1">return</span> <span class="fn">ModelResponse</span>(
+            text=raw.text,
+            tokens_in=raw.usage.prompt,
+            tokens_out=raw.usage.completion,
+            model_id=<span class="s1">"my-local-model"</span>,
+        )
+
+<span class="c1"># Drop it in anywhere a ModelClient is expected</span>
+patched = <span class="fn">edit_doc</span>(tree, <span class="s1">"Rewrite intro"</span>, model=<span class="fn">MyLLM</span>())</pre>
+          </div>
+          <div style="margin-top:20px; display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+            <span class="tag">anthropic</span>
+            <span class="tag">openai</span>
+            <span class="tag">litellm</span>
+            <span class="tag">any Protocol-compatible object</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step E: Inspect the tree -->
+      <div class="step reveal">
+        <div class="step-ord">E</div>
+        <div>
+          <h3>Inspect the DocTree</h3>
+          <p>Every node has a deterministic ID, a BLAKE3 fingerprint, and a raw_span back to the original bytes. Traverse, diff, or serialize individual subtrees.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> parse
+
+tree = <span class="fn">parse</span>(open(<span class="s1">"README.md"</span>, <span class="s1">"rb"</span>).<span class="fn">read</span>())
+
+<span class="c1"># walk every node depth-first</span>
+<span class="k1">for</span> node <span class="k1">in</span> tree.<span class="fn">walk</span>():
+    print(node.id, node.type, node.fingerprint[:8])
+
+<span class="c1"># look up a node by its deterministic ID</span>
+node = tree.<span class="fn">get_node</span>(<span class="s1">"heading:document:root/introduction#0"</span>)
+
+<span class="c1"># list the ancestor path (breadcrumb for prompt context)</span>
+ancestors = tree.<span class="fn">ancestors</span>(node.id)
+
+<span class="c1"># get the heading skeleton (used by SemanticLocator)
+# — only headings, never paragraph content</span>
+skeleton = tree.<span class="fn">heading_skeleton</span>()
+<span class="cm"># → "# Introduction\n## Background\n## Results\n"</span></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 03: PLAYGROUND ===== -->
+<section class="block" id="playground">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">03 / Playground</div>
+      <div>
+        <h2 class="section-title">Parse any markdown <em>live.</em></h2>
+        <p class="section-lede">Type or paste Markdown below and see the node tree DocPatch would produce — every block, its type, and its deterministic ID.</p>
+      </div>
+    </div>
+
+    <div class="playground-grid reveal">
+      <div>
+        <div class="panel-label">Markdown input</div>
+        <textarea class="playground-textarea" id="md-input" spellcheck="false" autocomplete="off"></textarea>
+        <div class="playground-actions">
+          <button class="btn-primary" id="parse-btn" style="font-size:13.5px; padding:10px 18px;">Parse →</button>
+          <span class="playground-stats" id="pg-stats"></span>
+        </div>
+      </div>
+      <div>
+        <div class="panel-label">Node tree</div>
+        <div class="node-tree" id="node-tree-out">
+          <div class="tree-placeholder">
+            <span>waiting for input</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 04: EFFICIENCY ===== -->
+<section class="block" id="efficiency">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">04 / Efficiency</div>
+      <div>
+        <h2 class="section-title">Savings scale with <em>document size.</em></h2>
+        <p class="section-lede">DocPatch sends a constant ~280 tokens per edit — just the target node plus a breadcrumb — regardless of how long the document is. The bigger the file, the wider the gap.</p>
+      </div>
+    </div>
+
+    <!-- Area chart -->
+    <div class="reveal" style="background:var(--paper-deep);border:1px solid var(--hairline);border-radius:12px;padding:28px 28px 16px;margin-bottom:20px;">
+      <div class="panel-label" style="margin-bottom:18px;">Token savings vs document size · log scale · overhead measured at 278 tokens on README.md</div>
+      <svg viewBox="0 0 660 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible;">
+        <defs>
+          <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1B4FF5" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#1B4FF5" stop-opacity="0.01"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Horizontal grid lines (0% 25% 50% 75% 100%) -->
+        <line x1="64" y1="228" x2="648" y2="228" stroke="#E2DED2" stroke-width="1"/>
+        <line x1="64" y1="175" x2="648" y2="175" stroke="#E2DED2" stroke-width="1"/>
+        <line x1="64" y1="122" x2="648" y2="122" stroke="#E2DED2" stroke-width="1"/>
+        <line x1="64" y1="69"  x2="648" y2="69"  stroke="#E2DED2" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="64" y1="16"  x2="648" y2="16"  stroke="#E2DED2" stroke-width="1" stroke-dasharray="4 3"/>
+
+        <!-- Y-axis labels -->
+        <text x="55" y="232" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">0%</text>
+        <text x="55" y="179" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">25%</text>
+        <text x="55" y="126" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">50%</text>
+        <text x="55" y="73"  font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">75%</text>
+        <text x="55" y="20"  font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">100%</text>
+        <text transform="rotate(-90)" x="-122" y="14" font-family="JetBrains Mono,monospace" font-size="8" fill="#5C6573" text-anchor="middle" letter-spacing="0.07em">TOKENS SAVED</text>
+
+        <!-- Area fill -->
+        <path d="M 64,135 Q 140,62 216,46 Q 316,30 392,22 Q 500,17 644,17 L 644,228 L 64,228 Z" fill="url(#savingsGrad)"/>
+
+        <!-- Savings curve (drawn by animation) -->
+        <path d="M 64,135 Q 140,62 216,46 Q 316,30 392,22 Q 500,17 644,17"
+              fill="none" stroke="#1B4FF5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="stroke-dasharray:800;stroke-dashoffset:800;animation:drawPath 1.8s 0.3s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+
+        <!-- X-axis ticks and labels (log scale: 1K 2K 5K 10K 50K 100K) -->
+        <line x1="140" y1="228" x2="140" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="140" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">1K</text>
+
+        <line x1="216" y1="228" x2="216" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="216" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">2K</text>
+
+        <line x1="316" y1="228" x2="316" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="316" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">5K</text>
+
+        <line x1="392" y1="228" x2="392" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="392" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">10K</text>
+
+        <line x1="568" y1="228" x2="568" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="568" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">50K</text>
+
+        <line x1="644" y1="228" x2="644" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="644" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">100K</text>
+
+        <text x="354" y="258" font-family="JetBrains Mono,monospace" font-size="8" fill="#5C6573" text-anchor="middle" letter-spacing="0.07em">DOCUMENT SIZE (TOKENS)</text>
+
+        <!-- README.md measured point: 1,402 tokens → x=177, 80.2% saved → y=58 -->
+        <circle cx="177" cy="58" r="5"  fill="#1B4FF5" style="opacity:0;animation:fadeIn 0.3s 1.9s ease forwards;"/>
+        <circle cx="177" cy="58" r="11" fill="none" stroke="#1B4FF5" stroke-width="1" stroke-dasharray="3 2" style="opacity:0;animation:fadeIn 0.3s 1.9s ease forwards;"/>
+        <line x1="184" y1="52" x2="209" y2="35" stroke="#D4CFC0" stroke-width="1" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;"/>
+        <rect x="210" y="20" width="148" height="38" rx="4" fill="#FBFAF7" stroke="#D4CFC0" stroke-width="1" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;"/>
+        <text x="220" y="35" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#0E1116" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;">README.md · 1,402 tok</text>
+        <text x="220" y="50" font-family="JetBrains Mono,monospace" font-size="8.5" fill="#1B4FF5" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;">80.2% saved (measured)</text>
+      </svg>
+    </div>
+
+    <!-- Stat comparison cards -->
+    <div class="stat-cards reveal">
+
+      <div class="card">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:18px;">1K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite-soft);margin-bottom:5px;">NAIVE</div>
+            <div style="height:6px;background:var(--ink);border-radius:3px;opacity:0.4;width:100%;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">1,000 tokens sent</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--blueprint);margin-bottom:5px;">DOCPATCH</div>
+            <div style="height:6px;background:#1B4FF5;border-radius:3px;width:28%;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">280 tokens sent</div>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">72%</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite);margin-top:5px;">TOKENS SAVED</div>
+      </div>
+
+      <div class="card" style="border-color:#1B4FF5;background:var(--blueprint-soft);">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--blueprint);margin-bottom:18px;">10K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite-soft);margin-bottom:5px;">NAIVE</div>
+            <div style="height:6px;background:var(--ink);border-radius:3px;opacity:0.4;width:100%;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">10,000 tokens sent</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--blueprint);margin-bottom:5px;">DOCPATCH</div>
+            <div style="height:6px;background:#1B4FF5;border-radius:3px;width:2.8%;min-width:5px;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">280 tokens sent</div>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">97%</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--blueprint);margin-top:5px;">TOKENS SAVED</div>
+      </div>
+
+      <div class="card">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:18px;">100K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite-soft);margin-bottom:5px;">NAIVE</div>
+            <div style="height:6px;background:var(--ink);border-radius:3px;opacity:0.4;width:100%;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">100,000 tokens sent</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--blueprint);margin-bottom:5px;">DOCPATCH</div>
+            <div style="height:6px;background:#1B4FF5;border-radius:3px;width:0.3%;min-width:5px;"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);margin-top:3px;">280 tokens sent</div>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">99.7%</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite);margin-top:5px;">TOKENS SAVED</div>
+      </div>
+
+    </div>
+
+    <p style="margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--graphite-soft);letter-spacing:0.03em;" class="reveal">Estimates: 4 chars ≈ 1 token. Overhead (breadcrumb + target node + prompt template) measured at 278 tokens on a real README.md edit. Actual savings depend on target node size.</p>
+  </div>
+</section>
+
+<!-- ===== SECTION 05: SPEED ===== -->
+<section class="block" id="speed">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">05 / Speed</div>
+      <div>
+        <h2 class="section-title">Edit time is <em>O(1)</em> in document size.</h2>
+        <p class="section-lede">LLM latency is driven by output tokens. A naive edit re-emits the whole document. DocPatch emits only the patched node — the same ~150 tokens whether the document is 2 pages or 200 pages.</p>
+      </div>
+    </div>
+
+    <!-- Dual-line chart: log-log scale -->
+    <div class="reveal" style="background:var(--paper-deep);border:1px solid var(--hairline);border-radius:12px;padding:28px 28px 16px;margin-bottom:20px;">
+      <div class="panel-label" style="margin-bottom:18px;">Edit latency vs document size · log-log scale · assumes 100 output tokens/sec</div>
+      <svg viewBox="0 0 660 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible;">
+        <defs>
+          <linearGradient id="speedGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#0E1116" stop-opacity="0.04"/>
+            <stop offset="100%" stop-color="#0E1116" stop-opacity="0.13"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Y-axis grid (log scale: 1s=228, 10s=157, 100s=87, 1000s=16) -->
+        <line x1="64" y1="228" x2="644" y2="228" stroke="#E2DED2" stroke-width="1"/>
+        <line x1="64" y1="157" x2="644" y2="157" stroke="#E2DED2" stroke-width="1"/>
+        <line x1="64" y1="87"  x2="644" y2="87"  stroke="#E2DED2" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="64" y1="16"  x2="644" y2="16"  stroke="#E2DED2" stroke-width="1" stroke-dasharray="4 3"/>
+
+        <!-- DocPatch constant guide (1.5s ≈ y=216) -->
+        <line x1="64" y1="216" x2="644" y2="216" stroke="#1B4FF5" stroke-width="1" stroke-dasharray="5 3" opacity="0.35"/>
+
+        <!-- Y-axis labels -->
+        <text x="55" y="232" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">1s</text>
+        <text x="55" y="161" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">10s</text>
+        <text x="55" y="91"  font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">100s</text>
+        <text x="55" y="20"  font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="end">1,000s</text>
+        <text transform="rotate(-90)" x="-122" y="14" font-family="JetBrains Mono,monospace" font-size="8" fill="#5C6573" text-anchor="middle" letter-spacing="0.07em">EDIT LATENCY</text>
+
+        <!-- "Time wasted" area between Naive and DocPatch lines -->
+        <path d="M 64,157 Q 270,100 354,87 Q 540,37 644,16 L 644,216 L 64,216 Z"
+              fill="url(#speedGrad)"/>
+
+        <!-- Naive line: 1K doc=10s → 100K doc=1,000s (dark, bold) -->
+        <path d="M 64,157 Q 270,100 354,87 Q 540,37 644,16"
+              fill="none" stroke="#0E1116" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.65"
+              style="stroke-dasharray:700;stroke-dashoffset:700;animation:drawPath 1.8s 0.3s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+
+        <!-- DocPatch line: constant ~1.5s (blueprint, flat) -->
+        <line x1="64" y1="216" x2="644" y2="216"
+              stroke="#1B4FF5" stroke-width="2.5" stroke-linecap="round"
+              style="stroke-dasharray:600;stroke-dashoffset:600;animation:drawPath 1.2s 0.5s cubic-bezier(0.6,0.1,0.2,1) forwards;"/>
+
+        <!-- X-axis ticks and labels (log scale: 1K-100K tokens) -->
+        <line x1="64"  y1="228" x2="64"  y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="64"  y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">1K</text>
+
+        <line x1="151" y1="228" x2="151" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="151" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">2K</text>
+
+        <line x1="267" y1="228" x2="267" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="267" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">5K</text>
+
+        <line x1="354" y1="228" x2="354" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="354" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">10K</text>
+
+        <line x1="557" y1="228" x2="557" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="557" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">50K</text>
+
+        <line x1="644" y1="228" x2="644" y2="235" stroke="#8A8F99" stroke-width="1"/>
+        <text x="644" y="247" font-family="JetBrains Mono,monospace" font-size="9" fill="#8A8F99" text-anchor="middle">100K</text>
+
+        <text x="354" y="258" font-family="JetBrains Mono,monospace" font-size="8" fill="#5C6573" text-anchor="middle" letter-spacing="0.07em">DOCUMENT SIZE (TOKENS)</text>
+
+        <!-- 10K callout: bracket at x=354 from naive (y=87) to docpatch (y=216) -->
+        <line x1="354" y1="91" x2="354" y2="212" stroke="#1B4FF5" stroke-width="1" stroke-dasharray="3 2" style="opacity:0;animation:fadeIn 0.3s 1.9s ease forwards;"/>
+        <polygon points="350,96 354,88 358,96" fill="#0E1116" fill-opacity="0.65" style="opacity:0;animation:fadeIn 0.3s 2.0s ease forwards;"/>
+        <polygon points="350,207 354,216 358,207" fill="#1B4FF5" style="opacity:0;animation:fadeIn 0.3s 2.0s ease forwards;"/>
+        <rect x="284" y="138" width="140" height="30" rx="4" fill="#FBFAF7" stroke="#D4CFC0" stroke-width="1" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;"/>
+        <text x="354" y="150" font-family="JetBrains Mono,monospace" font-size="9" fill="#1B4FF5" text-anchor="middle" font-weight="500" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;">67× faster</text>
+        <text x="354" y="162" font-family="JetBrains Mono,monospace" font-size="8" fill="#8A8F99" text-anchor="middle" style="opacity:0;animation:fadeIn 0.3s 2.1s ease forwards;">at 10K tokens</text>
+      </svg>
+
+      <!-- Legend -->
+      <div style="display:flex;gap:24px;margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--graphite);letter-spacing:0.04em;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:24px;height:2.5px;background:#0E1116;opacity:0.65;border-radius:2px;flex-shrink:0;"></div>
+          <span>Naive — whole document re-emitted</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:24px;height:2.5px;background:#1B4FF5;border-radius:2px;flex-shrink:0;"></div>
+          <span>DocPatch — target node only (~150 tokens)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speed comparison cards -->
+    <div class="stat-cards reveal">
+
+      <div class="card">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:18px;">10K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--graphite-soft);letter-spacing:0.06em;">NAIVE</span>
+            <span style="color:var(--ink);">~100 seconds</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--blueprint);letter-spacing:0.06em;">DOCPATCH</span>
+            <span style="color:var(--blueprint);">~1.5 seconds</span>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">67×</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite);margin-top:5px;">FASTER</div>
+      </div>
+
+      <div class="card" style="border-color:#1B4FF5;background:var(--blueprint-soft);">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--blueprint);margin-bottom:18px;">50K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--graphite-soft);letter-spacing:0.06em;">NAIVE</span>
+            <span style="color:var(--ink);">~8 minutes</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--blueprint);letter-spacing:0.06em;">DOCPATCH</span>
+            <span style="color:var(--blueprint);">~1.5 seconds</span>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">333×</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--blueprint);margin-top:5px;">FASTER</div>
+      </div>
+
+      <div class="card">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:18px;">100K-token document</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--graphite-soft);letter-spacing:0.06em;">NAIVE</span>
+            <span style="color:var(--ink);">~17 minutes</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;">
+            <span style="color:var(--blueprint);letter-spacing:0.06em;">DOCPATCH</span>
+            <span style="color:var(--blueprint);">~1.5 seconds</span>
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-0.025em;color:var(--blueprint);">667×</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.07em;color:var(--graphite);margin-top:5px;">FASTER</div>
+      </div>
+
+    </div>
+
+    <p style="margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--graphite-soft);letter-spacing:0.03em;" class="reveal">Assumes 100 output tokens/second, typical for modern hosted models (GPT-4o, Claude Haiku). DocPatch output: ~150 tokens (the patched node). Naive output: full document. Network RTT and first-token latency not included.</p>
+  </div>
+</section>
+
+<!-- ===== CTA INVERTED ===== -->
+<section style="padding: clamp(56px, 8vw, 96px) 0 0;">
+  <div class="container">
+    <div class="cta-inverted reveal">
+      <span class="eyebrow">Open source · Apache-2.0 core</span>
+      <h2>One node at a time.<br><em>Losslessly.</em></h2>
+      <p>DocPatch v0.1 ships with Markdown and JSON. DOCX, PDF, history, reference graph, and server come in subsequent releases. Every change is an addressable, fingerprintable, reversible edit.</p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="#integration" class="btn-primary">Read the docs</a>
+        <a href="https://github.com/docpatch/docpatch" class="btn-secondary" style="color:#FBFAF7; border-color:rgba(251,250,247,0.25);">GitHub ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <span class="footer-meta">DocPatch v0.1 · Apache-2.0 (core) · BSL-1.1 (server)</span>
+    <div class="footer-links">
+      <a href="https://github.com/docpatch/docpatch">GitHub</a>
+      <a href="https://github.com/docpatch/docpatch/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/docpatch/docpatch/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ===== REVEAL ON SCROLL =====
+(function () {
+  const els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function(el) { el.classList.add('is-in'); });
+    return;
+  }
+  const obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('is-in');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(function(el) { obs.observe(el); });
+})();
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var tabId = btn.getAttribute('data-tab');
+    var parent = btn.closest('.step') || btn.closest('.code-tabs') || document;
+    parent.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    parent.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var panel = document.getElementById(tabId);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+// ===== MARKDOWN PARSER =====
+function slugify(text) {
+  return (text || '').toLowerCase()
+    .replace(/[`*_~\[\]()#+!]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+function parseMarkdown(src) {
+  var lines = src.split('\n');
+  var root = {
+    type: 'DOCUMENT',
+    id: 'document:root',
+    content: null,
+    children: [],
+    depth: 0
+  };
+
+  var counters = {};
+  function nextOrd(type) {
+    counters[type] = (counters[type] || 0);
+    return counters[type]++;
+  }
+
+  function makeId(type, parentId, text) {
+    var slug = slugify(text) || type.toLowerCase();
+    var ord = nextOrd(type + ':' + parentId);
+    return type.toLowerCase() + ':' + parentId + '/' + slug + '#' + ord;
+  }
+
+  var i = 0;
+  while (i < lines.length) {
+    var line = lines[i];
+
+    // Code block
+    if (line.match(/^```/)) {
+      var lang = line.slice(3).trim() || 'text';
+      var codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].match(/^```/)) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      var id = makeId('CODE_BLOCK', 'document:root', lang);
+      root.children.push({ type: 'CODE_BLOCK', id: id, content: codeLines.join('\n'), meta: { lang: lang }, children: [], depth: 1 });
+      continue;
+    }
+
+    // Blockquote
+    if (line.match(/^>\s?/)) {
+      var bqLines = [];
+      while (i < lines.length && lines[i].match(/^>\s?/)) {
+        bqLines.push(lines[i].replace(/^>\s?/, ''));
+        i++;
+      }
+      var bqText = bqLines.join(' ').trim();
+      var bqId = makeId('BLOCKQUOTE', 'document:root', bqText);
+      root.children.push({ type: 'BLOCKQUOTE', id: bqId, content: bqText, children: [], depth: 1 });
+      continue;
+    }
+
+    // Thematic break
+    if (line.match(/^---+$/) || line.match(/^\*\*\*+$/) || line.match(/^___+$/)) {
+      var hrId = makeId('THEMATIC_BREAK', 'document:root', 'hr');
+      root.children.push({ type: 'THEMATIC_BREAK', id: hrId, content: null, children: [], depth: 1 });
+      i++;
+      continue;
+    }
+
+    // Heading
+    var hm = line.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      var level = hm[1].length;
+      var text = hm[2].trim();
+      var hId = makeId('HEADING', 'document:root', text);
+      root.children.push({ type: 'HEADING', id: hId, content: text, meta: { level: level }, children: [], depth: 1 });
+      i++;
+      continue;
+    }
+
+    // Ordered or unordered list
+    if (line.match(/^[-*+]\s/) || line.match(/^\d+\.\s/)) {
+      var items = [];
+      var listId = makeId('LIST', 'document:root', 'list');
+      while (i < lines.length && (lines[i].match(/^[-*+]\s/) || lines[i].match(/^\d+\.\s/))) {
+        var itemText = lines[i].replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '');
+        var itemId = makeId('LIST_ITEM', listId, itemText);
+        items.push({ type: 'LIST_ITEM', id: itemId, content: itemText, children: [], depth: 2 });
+        i++;
+      }
+      root.children.push({ type: 'LIST', id: listId, content: null, children: items, depth: 1 });
+      continue;
+    }
+
+    // Paragraph (non-empty)
+    if (line.trim()) {
+      var pLines = [line];
+      i++;
+      while (i < lines.length && lines[i].trim() && !lines[i].match(/^#{1,6}\s/) && !lines[i].match(/^```/) && !lines[i].match(/^[-*+]\s/) && !lines[i].match(/^\d+\.\s/) && !lines[i].match(/^---+$/) && !lines[i].match(/^>\s?/)) {
+        pLines.push(lines[i]);
+        i++;
+      }
+      var pText = pLines.join(' ').trim();
+      var pId = makeId('PARAGRAPH', 'document:root', pText);
+      root.children.push({ type: 'PARAGRAPH', id: pId, content: pText, children: [], depth: 1 });
+      continue;
+    }
+
+    i++;
+  }
+
+  return root;
+}
+
+// ===== TREE RENDERER =====
+function truncate(text, n) {
+  if (!text) return '';
+  text = String(text);
+  if (text.length <= n) return text;
+  return text.slice(0, n) + '…';
+}
+
+function typeClass(type) {
+  var map = {
+    'DOCUMENT': 't-document',
+    'HEADING': 't-heading',
+    'CODE_BLOCK': 't-code'
+  };
+  return map[type] || '';
+}
+
+function renderNode(node, out) {
+  var indent = '';
+  for (var d = 1; d < node.depth; d++) {
+    indent += '<span class="node-indent-line"></span>';
+  }
+
+  var meta = '';
+  if (node.meta && node.meta.level) {
+    meta = ' <span style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);">h' + node.meta.level + '</span>';
+  }
+  if (node.meta && node.meta.lang && node.meta.lang !== 'text') {
+    meta = ' <span style="font-family:var(--mono);font-size:9px;color:var(--graphite-soft);">' + node.meta.lang + '</span>';
+  }
+
+  var contentDisplay = '';
+  if (node.content) {
+    var raw = node.content.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    contentDisplay = '<div class="node-content">' + truncate(raw, 72) + '</div>';
+  }
+
+  out.push('<div class="node-row">');
+  out.push(indent);
+  out.push('<span class="node-type ' + typeClass(node.type) + '">' + node.type.replace('_',' ') + '</span>');
+  out.push(meta);
+  out.push('<div class="node-info">');
+  out.push('<div class="node-id">' + node.id + '</div>');
+  out.push(contentDisplay);
+  out.push('</div>');
+  out.push('</div>');
+
+  if (node.children) {
+    node.children.forEach(function(child) {
+      child.depth = (node.depth || 0) + 1;
+      renderNode(child, out);
+    });
+  }
+}
+
+function renderTree(root) {
+  var out = [];
+  renderNode(root, out);
+  return out.join('');
+}
+
+// ===== PLAYGROUND WIRING =====
+var SAMPLE_MD = [
+  '# DocPatch',
+  '',
+  'A format-agnostic Python library for surgical LLM document editing.',
+  '',
+  '## The pipeline',
+  '',
+  'Instead of sending your entire document to a model, DocPatch parses it',
+  'into an addressable tree, locates the right node, and sends only that',
+  'node to the model.',
+  '',
+  '## Installation',
+  '',
+  '```bash',
+  'pip install docpatch',
+  '```',
+  '',
+  '## Supported formats',
+  '',
+  '- Markdown (.md)',
+  '- JSON (.json)',
+  '- DOCX — coming in v0.2',
+  '',
+  '## Why lossless?',
+  '',
+  '> Unchanged regions return their exact original bytes — not a re-render.',
+  '',
+  'Every block\'s raw bytes are preserved in its `raw_span`. Splice only',
+  'touches the nodes that changed.',
+].join('\n');
+
+var mdInput = document.getElementById('md-input');
+var parseBtn = document.getElementById('parse-btn');
+var treeOut = document.getElementById('node-tree-out');
+var pgStats = document.getElementById('pg-stats');
+
+mdInput.value = SAMPLE_MD;
+
+function doParseAndRender() {
+  var src = mdInput.value;
+  if (!src.trim()) {
+    treeOut.innerHTML = '<div class="tree-placeholder"><span>nothing to parse</span></div>';
+    pgStats.textContent = '';
+    return;
+  }
+  var t0 = performance.now();
+  var root = parseMarkdown(src);
+  var elapsed = (performance.now() - t0).toFixed(1);
+
+  var nodeCount = 0;
+  function countNodes(n) {
+    nodeCount++;
+    if (n.children) n.children.forEach(countNodes);
+  }
+  countNodes(root);
+
+  treeOut.innerHTML = renderTree(root);
+  pgStats.textContent = nodeCount + ' nodes · ' + elapsed + 'ms';
+}
+
+parseBtn.addEventListener('click', doParseAndRender);
+
+// Also parse on Ctrl+Enter
+mdInput.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    doParseAndRender();
+  }
+});
+
+// Auto-parse on initial load
+doParseAndRender();
+</script>
+
+</body>
+</html>
