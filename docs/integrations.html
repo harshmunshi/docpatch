@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocPatch — Integration Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET + TOKENS (identical to index.html) ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper:            #FBFAF7;
+  --ink:              #0E1116;
+  --graphite:         #5C6573;
+  --hairline:         #E2DED2;
+  --blueprint:        #1B4FF5;
+  --paper-deep:       #F4F1EA;
+  --ink-soft:         #2A2E36;
+  --graphite-soft:    #8A8F99;
+  --hairline-strong:  #D4CFC0;
+  --blueprint-soft:   rgba(27, 79, 245, 0.08);
+  --display:          'Fraunces', Georgia, serif;
+  --body:             'Inter', system-ui, -apple-system, sans-serif;
+  --mono:             'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --maxw:             1240px;
+  --gutter:           clamp(20px, 4vw, 56px);
+  --ease-pop:         cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  background-image: radial-gradient(circle at 1px 1px, rgba(14,17,22,0.06) 1px, transparent 0);
+  background-size: 28px 28px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+section.block {
+  padding: clamp(64px, 9vw, 108px) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+/* ===== SECTION STRUCTURE ===== */
+.section-head {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 32px;
+  margin-bottom: 56px;
+  align-items: start;
+}
+.section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--graphite);
+  letter-spacing: 0.08em;
+  border-top: 1px solid var(--ink);
+  padding-top: 8px;
+  text-transform: uppercase;
+  padding-right: 16px;
+  margin-top: 8px;
+}
+.section-title {
+  font-family: var(--display);
+  font-size: clamp(30px, 4vw, 50px);
+  line-height: 1.03;
+  letter-spacing: -0.022em;
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+.section-lede {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--graphite);
+  max-width: 58ch;
+  letter-spacing: -0.005em;
+}
+@media (max-width: 680px) {
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .section-num { border-top: none; border-bottom: 1px solid var(--hairline-strong); padding-top: 0; padding-bottom: 8px; }
+}
+
+/* ===== TYPOGRAPHY ===== */
+.eyebrow {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--graphite);
+  margin-bottom: 16px;
+}
+h2 em, h1 em { font-style: italic; color: var(--blueprint); font-weight: 400; }
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--ink); color: var(--paper);
+  padding: 13px 22px; border-radius: 5px;
+  font-family: var(--body); font-size: 14.5px; font-weight: 500;
+  letter-spacing: -0.005em; text-decoration: none; border: none; cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+}
+.btn-primary:hover { background: var(--blueprint); transform: translateY(-1px); }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--ink);
+  padding: 13px 18px; border-radius: 5px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  border: 1px solid var(--hairline-strong); letter-spacing: -0.01em;
+  text-decoration: none; cursor: pointer;
+  transition: border-color 140ms ease;
+}
+.btn-secondary:hover { border-color: var(--ink); }
+
+/* ===== CODE BOX ===== */
+.codebox {
+  background: var(--ink); color: #F2EFE8;
+  border-radius: 10px; font-family: var(--mono);
+  font-size: 12.5px; line-height: 1.7;
+  padding: 24px 28px; overflow-x: auto; position: relative;
+}
+.codebox pre { margin: 0; }
+.codebox .k1 { color: #9BC1FF; }
+.codebox .s1 { color: #C8E6A8; }
+.codebox .c1 { color: #7D7669; font-style: italic; }
+.codebox .p1 { color: #E2C28A; }
+.codebox .fn { color: #FFD6A5; }
+.codebox .op { color: #C8A6FF; }
+.codebox-lang {
+  position: absolute; top: 12px; right: 16px;
+  font-family: var(--mono); font-size: 9.5px;
+  color: var(--graphite-soft); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* ===== SHELL COMMAND ===== */
+.shell-cmd {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--ink); border-radius: 8px;
+  padding: 14px 20px; font-family: var(--mono); font-size: 13.5px; color: #F2EFE8;
+}
+.shell-cmd .prompt { color: var(--graphite-soft); user-select: none; }
+.shell-cmd .cmd { color: #C8E6A8; }
+
+/* ===== TABS ===== */
+.tab-list {
+  display: flex; border-bottom: 1px solid var(--hairline);
+  margin-bottom: 0; gap: 0; flex-wrap: wrap;
+}
+.tab-btn {
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--graphite); padding: 10px 16px;
+  cursor: pointer; margin-bottom: -1px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+.tab-btn:hover { color: var(--ink); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== TAG / BADGE ===== */
+.tag {
+  font-family: var(--mono); font-size: 10.5px;
+  color: var(--graphite); border: 1px solid var(--hairline-strong);
+  padding: 3px 8px; border-radius: 3px; letter-spacing: 0.02em;
+}
+.badge {
+  display: inline-block; font-family: var(--mono); font-size: 9.5px;
+  font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px;
+}
+.badge-ready { background: rgba(27,79,245,0.1); color: var(--blueprint); }
+.badge-planned { background: rgba(92,101,115,0.1); color: var(--graphite); }
+
+/* ===== CALLOUT ===== */
+.callout {
+  border-left: 2px solid var(--blueprint);
+  padding: 14px 20px;
+  background: var(--blueprint-soft);
+  border-radius: 0 6px 6px 0;
+  margin: 20px 0;
+}
+.callout-label {
+  font-family: var(--mono); font-size: 10px;
+  font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--blueprint);
+  margin-bottom: 5px;
+}
+.callout p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+
+/* ===== STEP (docs variant) ===== */
+.step {
+  display: grid; grid-template-columns: 36px 1fr;
+  gap: 24px; padding: 40px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.step:first-child { padding-top: 0; }
+.step:last-child { border-bottom: none; padding-bottom: 0; }
+.step-ord {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--graphite-soft); border-top: 1px solid var(--hairline-strong);
+  padding-top: 6px; letter-spacing: 0.04em; margin-top: 5px;
+}
+.step h3 {
+  font-family: var(--display); font-size: 22px;
+  line-height: 1.1; letter-spacing: -0.015em;
+  font-weight: 400; margin-bottom: 10px;
+}
+.step p {
+  font-size: 14px; color: var(--graphite);
+  line-height: 1.6; margin-bottom: 18px; max-width: 68ch;
+}
+.step p:last-child { margin-bottom: 0; }
+
+/* ===== PATTERN GRID ===== */
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pattern-cell {
+  padding: 28px 32px;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+.pattern-cell:nth-child(2n) { border-right: none; }
+.pattern-cell:nth-child(3), .pattern-cell:nth-child(4) { border-bottom: none; }
+.pattern-num {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--graphite-soft); letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.pattern-cell h3 {
+  font-family: var(--display); font-size: 20px;
+  letter-spacing: -0.012em; font-weight: 400;
+  margin-bottom: 8px; line-height: 1.1;
+}
+.pattern-cell p {
+  font-size: 13.5px; color: var(--graphite);
+  line-height: 1.6; margin-bottom: 0;
+}
+@media (max-width: 680px) {
+  .pattern-grid { grid-template-columns: 1fr; }
+  .pattern-cell { border-right: none !important; }
+  .pattern-cell:last-child { border-bottom: none; }
+  .pattern-cell:nth-child(3) { border-bottom: 1px solid var(--hairline) !important; }
+}
+
+/* ===== PROTO TABLE ===== */
+.proto-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13.5px;
+}
+.proto-table th {
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--graphite); font-weight: 500;
+  padding: 10px 16px; text-align: left;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.proto-table td {
+  padding: 12px 16px; border-bottom: 1px solid var(--hairline);
+  vertical-align: top; line-height: 1.55;
+}
+.proto-table tr:last-child td { border-bottom: none; }
+.proto-table td:first-child {
+  font-family: var(--mono); font-size: 12px; color: var(--blueprint);
+  white-space: nowrap;
+}
+.proto-table td:nth-child(2) { color: var(--ink-soft); max-width: 30ch; }
+.proto-table td:last-child { text-align: right; }
+.proto-box {
+  background: var(--paper-deep); border: 1px solid var(--hairline);
+  border-radius: 8px; overflow: hidden; margin-top: 32px;
+}
+.proto-box-head {
+  padding: 14px 20px; border-bottom: 1px solid var(--hairline);
+  font-family: var(--mono); font-size: 11px;
+  color: var(--graphite); letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+}
+.proto-box-head strong { color: var(--ink); font-weight: 500; }
+
+/* ===== FRAMEWORK GRID ===== */
+.adapter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.adapter-card {
+  background: var(--paper-deep); border: 1px solid var(--hairline);
+  border-radius: 8px; padding: 22px;
+  transition: border-color 150ms ease;
+  cursor: default;
+}
+.adapter-card.highlight { border-color: var(--blueprint); background: var(--blueprint-soft); }
+.adapter-logo {
+  font-family: var(--mono); font-size: 18px;
+  font-weight: 500; letter-spacing: -0.02em;
+  margin-bottom: 8px; color: var(--ink);
+}
+.adapter-card p { font-size: 13px; color: var(--graphite); line-height: 1.55; }
+@media (max-width: 720px) { .adapter-grid { grid-template-columns: 1fr; } }
+
+/* ===== REVEAL ===== */
+.reveal {
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 700ms ease, transform 700ms ease;
+}
+.reveal.is-in { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ===== NAV ===== */
+.nav-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(251,250,247,0.9);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+.nav-inner {
+  display: flex; align-items: center;
+  justify-content: space-between; height: 56px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 9px;
+  text-decoration: none; color: var(--ink);
+}
+.nav-logo-diamond {
+  width: 14px; height: 14px; background: var(--blueprint);
+  transform: rotate(45deg); border-radius: 2px; flex-shrink: 0;
+}
+.nav-logo-text { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.02em; }
+.nav-links { display: flex; align-items: center; gap: 24px; }
+.nav-links a {
+  font-family: var(--body); font-size: 14px; font-weight: 500;
+  color: var(--graphite); text-decoration: none; transition: color 120ms ease;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links a.active { color: var(--ink); }
+.nav-links .btn-secondary { padding: 7px 14px; font-size: 12px; }
+.nav-back {
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--graphite-soft); letter-spacing: 0.03em;
+  text-decoration: none; display: flex; align-items: center; gap: 5px;
+  transition: color 120ms ease;
+}
+.nav-back:hover { color: var(--ink); }
+@media (max-width: 620px) { .nav-links a:not(.btn-secondary) { display: none; } }
+
+/* ===== DOCS HERO ===== */
+.docs-hero {
+  padding: clamp(48px, 8vw, 96px) 0 clamp(40px, 6vw, 72px);
+}
+.docs-hero-inner {
+  max-width: 800px;
+}
+.docs-hero h1 {
+  font-family: var(--display);
+  font-size: clamp(36px, 5.5vw, 66px);
+  line-height: 0.98; letter-spacing: -0.024em;
+  font-weight: 400; margin-bottom: 22px;
+}
+.docs-hero-lede {
+  font-size: 17px; line-height: 1.58;
+  color: var(--graphite); max-width: 60ch;
+  margin-bottom: 32px; letter-spacing: -0.005em;
+}
+.jump-links {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.jump-link {
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--graphite); border: 1px solid var(--hairline-strong);
+  padding: 6px 12px; border-radius: 4px; text-decoration: none;
+  letter-spacing: 0.03em; transition: color 120ms ease, border-color 120ms ease;
+}
+.jump-link:hover { color: var(--blueprint); border-color: var(--blueprint); }
+
+/* ===== CTA INVERTED ===== */
+.cta-inverted {
+  background: var(--ink); color: var(--paper);
+  border-radius: 14px; padding: clamp(40px, 6vw, 72px) clamp(32px, 5vw, 64px);
+  background-image: radial-gradient(circle at 1px 1px, rgba(251,250,247,0.08) 1px, transparent 0);
+  background-size: 22px 22px; margin-bottom: clamp(64px, 9vw, 100px);
+}
+.cta-inverted .eyebrow { color: rgba(251,250,247,0.35); }
+.cta-inverted h2 {
+  font-family: var(--display); font-size: clamp(26px, 3.5vw, 44px);
+  line-height: 1.06; letter-spacing: -0.022em;
+  font-weight: 400; margin-bottom: 16px;
+}
+.cta-inverted h2 em { color: #9BC1FF; }
+.cta-inverted p { color: rgba(251,250,247,0.55); font-size: 15px; max-width: 52ch; line-height: 1.6; margin-bottom: 28px; }
+.cta-inverted .btn-primary { background: var(--paper); color: var(--ink); }
+.cta-inverted .btn-primary:hover { background: #9BC1FF; }
+
+/* ===== FOOTER ===== */
+.footer {
+  border-top: 1px solid var(--hairline);
+  padding: 32px 0;
+}
+.footer-inner {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.footer-meta {
+  font-family: var(--mono); font-size: 10.5px;
+  color: var(--graphite-soft); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.footer-links { display: flex; gap: 20px; }
+.footer-links a {
+  font-family: var(--mono); font-size: 10.5px;
+  color: var(--graphite-soft); text-decoration: none;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  transition: color 120ms ease;
+}
+.footer-links a:hover { color: var(--ink); }
+
+/* ===== INLINE CODE ===== */
+code {
+  font-family: var(--mono); font-size: 12.5px;
+  background: var(--paper-deep); border: 1px solid var(--hairline);
+  padding: 1px 5px; border-radius: 3px; color: var(--ink-soft);
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="nav-bar">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-diamond"></div>
+      <span class="nav-logo-text">DocPatch</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#content">Content</a>
+      <a href="#patterns">Patterns</a>
+      <a href="#frameworks">Frameworks</a>
+      <a href="#advanced">Advanced</a>
+      <a href="https://github.com/docpatch/docpatch" class="btn-secondary">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== DOCS HERO ===== -->
+<section class="docs-hero">
+  <div class="container">
+    <div class="docs-hero-inner reveal">
+      <span class="eyebrow">Integration guide · v0.1</span>
+      <h1>Wire DocPatch into <em>any</em> agent stack.</h1>
+      <p class="docs-hero-lede">One seam — the <code>ModelClient</code> protocol — connects DocPatch to LangChain, CrewAI, or a fully custom pipeline. Parse streamed bytes, route by node type, batch across hundreds of documents.</p>
+      <div class="jump-links">
+        <a href="#content" class="jump-link">01 / Streaming content</a>
+        <a href="#patterns" class="jump-link">02 / Agentic patterns</a>
+        <a href="#frameworks" class="jump-link">03 / Framework adapters</a>
+        <a href="#advanced" class="jump-link">04 / Custom pipeline</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 01: CONTENT SOURCES ===== -->
+<section class="block" id="content">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">01 / Content</div>
+      <div>
+        <h2 class="section-title">No file required.</h2>
+        <p class="section-lede"><code>parse_text()</code> turns any string — LLM output, a streamed buffer, an API response — into an addressable DocTree without touching disk.</p>
+      </div>
+    </div>
+
+    <div class="integration-steps" style="display:flex; flex-direction:column; gap:0;">
+
+      <!-- Step A: parse_text -->
+      <div class="step reveal">
+        <div class="step-ord">A</div>
+        <div>
+          <h3>In-memory strings</h3>
+          <p>The existing <code>open_doc(path)</code> reads a file. <code>parse_text()</code> takes a raw string — no path, no filesystem. The rest of the pipeline is identical.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch <span class="k1">import</span> parse_text, edit_doc
+<span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> serialize
+<span class="k1">from</span> docpatch.models.anthropic <span class="k1">import</span> AnthropicClient
+
+model = <span class="fn">AnthropicClient</span>(model=<span class="s1">"claude-haiku-4-5-20251001"</span>)
+
+<span class="c1"># 1. Generate a draft — content lives only in memory</span>
+draft = model.<span class="fn">complete</span>(
+    <span class="s1">"Write a one-page design doc for a rate-limiter service."</span>,
+    max_tokens=<span class="p1">2048</span>,
+).text
+
+<span class="c1"># 2. Parse into an addressable tree — same as open_doc(), no file</span>
+tree = <span class="fn">parse_text</span>(draft)
+
+<span class="c1"># 3. Locate the target node and patch only that section</span>
+patched = <span class="fn">edit_doc</span>(
+    tree,
+    <span class="s1">"Make the Failure Modes section more concise."</span>,
+    model=model,
+)
+
+<span class="c1"># 4. Back to a string — or write to disk if you want</span>
+result: <span class="fn">str</span> = <span class="fn">serialize</span>(patched).<span class="fn">decode</span>()</pre>
+          </div>
+          <div class="callout" style="margin-top:16px;">
+            <div class="callout-label">Key property</div>
+            <p>Token cost is flat regardless of document length. The LLM receives only the target node + a breadcrumb — never the whole draft. A 20-page design doc costs the same input tokens as a 1-page draft for a targeted edit.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step B: Streaming -->
+      <div class="step reveal">
+        <div class="step-ord">B</div>
+        <div>
+          <h3>Streamed byte output</h3>
+          <p>Buffer the streamed tokens as they arrive, then parse the complete buffer into a DocTree when the stream closes. Patching happens after streaming — the two stages are fully decoupled.</p>
+
+          <div class="tab-list" style="margin-top:4px;">
+            <button class="tab-btn active" data-tab="stream-anthropic">Anthropic</button>
+            <button class="tab-btn" data-tab="stream-openai">OpenAI</button>
+            <button class="tab-btn" data-tab="stream-generic">Generic iterator</button>
+          </div>
+
+          <div id="stream-anthropic" class="tab-panel active">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">python</span>
+              <pre><span class="k1">import</span> anthropic
+<span class="k1">from</span> docpatch <span class="k1">import</span> parse_text, edit_doc
+<span class="k1">from</span> docpatch.models.anthropic <span class="k1">import</span> AnthropicClient
+
+client = anthropic.<span class="fn">Anthropic</span>()
+buffer: list[str] = []
+
+<span class="c1"># 1. Stream generation — buffer chunks as they arrive</span>
+<span class="k1">with</span> client.messages.<span class="fn">stream</span>(
+    model=<span class="s1">"claude-haiku-4-5-20251001"</span>,
+    max_tokens=<span class="p1">2048</span>,
+    messages=[{<span class="s1">"role"</span>: <span class="s1">"user"</span>, <span class="s1">"content"</span>: <span class="s1">"Write a rate-limiter design doc."</span>}],
+) <span class="k1">as</span> stream:
+    <span class="k1">for</span> text <span class="k1">in</span> stream.text_stream:
+        buffer.<span class="fn">append</span>(text)
+
+<span class="c1"># 2. Stream closed — parse the complete text into a DocTree</span>
+draft = <span class="s1">""</span>.<span class="fn">join</span>(buffer)
+tree = <span class="fn">parse_text</span>(draft)
+
+<span class="c1"># 3. Patch surgically — only one section goes back to the model</span>
+model_client = <span class="fn">AnthropicClient</span>()
+patched = <span class="fn">edit_doc</span>(tree, <span class="s1">"Add a Redis failover note to the Storage section."</span>, model=model_client)</pre>
+            </div>
+          </div>
+
+          <div id="stream-openai" class="tab-panel">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">python</span>
+              <pre><span class="k1">from</span> openai <span class="k1">import</span> OpenAI
+<span class="k1">from</span> docpatch <span class="k1">import</span> parse_text, edit_doc
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+
+client = <span class="fn">OpenAI</span>()
+buffer: list[str] = []
+
+<span class="c1"># 1. Stream generation</span>
+<span class="k1">with</span> client.chat.completions.<span class="fn">stream</span>(
+    model=<span class="s1">"gpt-4o-mini"</span>,
+    messages=[{<span class="s1">"role"</span>: <span class="s1">"user"</span>, <span class="s1">"content"</span>: <span class="s1">"Write a rate-limiter design doc."</span>}],
+) <span class="k1">as</span> stream:
+    <span class="k1">for</span> chunk <span class="k1">in</span> stream:
+        delta = chunk.choices[<span class="p1">0</span>].delta.content <span class="k1">or</span> <span class="s1">""</span>
+        buffer.<span class="fn">append</span>(delta)
+
+<span class="c1"># 2. Parse + patch</span>
+tree = <span class="fn">parse_text</span>(<span class="s1">""</span>.<span class="fn">join</span>(buffer))
+patched = <span class="fn">edit_doc</span>(tree, <span class="s1">"Tighten the Failure Modes section."</span>, model=<span class="fn">OpenAIClient</span>())</pre>
+            </div>
+          </div>
+
+          <div id="stream-generic" class="tab-panel">
+            <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+              <span class="codebox-lang">python</span>
+              <pre><span class="k1">from</span> docpatch <span class="k1">import</span> parse_text, edit_doc
+
+<span class="k1">def</span> <span class="fn">parse_stream</span>(token_iter, model, instruction: str) -> str:
+    <span class="s1">"""Buffer any token iterator, parse when done, patch surgically."""</span>
+    draft = <span class="s1">""</span>.<span class="fn">join</span>(token_iter)       <span class="c1"># drain the iterator</span>
+    tree = <span class="fn">parse_text</span>(draft)
+    patched = <span class="fn">edit_doc</span>(tree, instruction, model=model)
+
+    <span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> serialize
+    <span class="k1">return</span> <span class="fn">serialize</span>(patched).<span class="fn">decode</span>()
+
+<span class="c1"># Works with any iterator: httpx SSE, websocket frames, local generator, etc.</span>
+result = <span class="fn">parse_stream</span>(my_token_stream, my_model_client, <span class="s1">"Add an example."</span>)</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step C: Format detection -->
+      <div class="step reveal">
+        <div class="step-ord">C</div>
+        <div>
+          <h3>Format detection on strings</h3>
+          <p><code>parse_text()</code> defaults to Markdown. Pass <code>fmt=</code> explicitly when the format is known, or use <code>detect_format()</code> with the MIME type.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch <span class="k1">import</span> parse_text
+<span class="k1">from</span> docpatch.core.types <span class="k1">import</span> DocFormat
+
+<span class="c1"># explicit format</span>
+tree = <span class="fn">parse_text</span>(json_string, fmt=DocFormat.JSON)
+tree = <span class="fn">parse_text</span>(markdown_string, fmt=DocFormat.MARKDOWN)
+
+<span class="c1"># detect from content-type header (e.g. from an HTTP response)</span>
+<span class="k1">from</span> docpatch.parsers <span class="k1">import</span> detect_format_from_mime
+fmt = <span class="fn">detect_format_from_mime</span>(<span class="s1">"application/json"</span>)   <span class="c1"># → DocFormat.JSON</span>
+tree = <span class="fn">parse_text</span>(body, fmt=fmt)</pre>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /integration-steps -->
+  </div>
+</section>
+
+<!-- ===== SECTION 02: AGENTIC PATTERNS ===== -->
+<section class="block" id="patterns">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">02 / Patterns</div>
+      <div>
+        <h2 class="section-title">Four patterns for agent loops.</h2>
+        <p class="section-lede">DocPatch's immutable DocTree and deterministic splicer compose cleanly with the most common agentic control-flow shapes.</p>
+      </div>
+    </div>
+
+    <!-- Pattern overview grid -->
+    <div class="pattern-grid reveal" style="margin-bottom:56px;">
+      <div class="pattern-cell">
+        <div class="pattern-num">Pattern 01</div>
+        <h3>Generate → Verify → Patch</h3>
+        <p>Generate a draft, validate each section structurally, send only failing nodes back to the model for repair. The validator sees the full DocTree; the LLM sees only the failing subtree.</p>
+      </div>
+      <div class="pattern-cell">
+        <div class="pattern-num">Pattern 02</div>
+        <h3>Atomic multi-patch</h3>
+        <p>Apply multiple independent edits to different nodes in a single <code>splice()</code> call. All patches reference the original tree — ordering is irrelevant, conflicts surface at splice time.</p>
+      </div>
+      <div class="pattern-cell">
+        <div class="pattern-num">Pattern 03</div>
+        <h3>Route by node type</h3>
+        <p>Use a cheap model for prose edits, a powerful model for code blocks. The routing decision happens after <code>locate()</code> — a single function before <code>apply()</code>.</p>
+      </div>
+      <div class="pattern-cell">
+        <div class="pattern-num">Pattern 04</div>
+        <h3>Batch across documents</h3>
+        <p>DocTree objects are immutable; <code>edit_doc()</code> is stateless. Fan out across a file glob with <code>ThreadPoolExecutor</code> — no locks, no shared state.</p>
+      </div>
+    </div>
+
+    <!-- Detailed code for each pattern -->
+    <div class="tab-list reveal">
+      <button class="tab-btn active" data-tab="pat-refine">Generate → Verify → Patch</button>
+      <button class="tab-btn" data-tab="pat-multi">Atomic multi-patch</button>
+      <button class="tab-btn" data-tab="pat-route">Route by node type</button>
+      <button class="tab-btn" data-tab="pat-batch">Batch across docs</button>
+    </div>
+
+    <div id="pat-refine" class="tab-panel active reveal">
+      <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+        <span class="codebox-lang">python</span>
+        <pre><span class="k1">from</span> docpatch <span class="k1">import</span> parse_text, edit_doc
+<span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> serialize
+<span class="k1">from</span> docpatch.core.tree <span class="k1">import</span> DocTree
+<span class="k1">from</span> dataclasses <span class="k1">import</span> dataclass
+
+@dataclass
+<span class="k1">class</span> <span class="fn">Issue</span>:
+    fix_instruction: str   <span class="c1"># what to tell the model</span>
+
+<span class="k1">def</span> <span class="fn">check_examples</span>(tree: DocTree) -> list[Issue]:
+    <span class="s1">"""Return an Issue for every section that has no code block child."""</span>
+    issues = []
+    <span class="k1">from</span> docpatch.core.types <span class="k1">import</span> NodeType
+    <span class="k1">for</span> node <span class="k1">in</span> tree.<span class="fn">walk</span>():
+        <span class="k1">if</span> node.type == NodeType.HEADING:
+            has_code = <span class="fn">any</span>(c.type == NodeType.CODE_BLOCK <span class="k1">for</span> c <span class="k1">in</span> node.children)
+            <span class="k1">if not</span> has_code:
+                issues.<span class="fn">append</span>(<span class="fn">Issue</span>(
+                    fix_instruction=<span class="s1">f"Add a concrete code example under '{node.content}'"</span>
+                ))
+    <span class="k1">return</span> issues
+
+<span class="k1">def</span> <span class="fn">generate_and_refine</span>(prompt: str, model, validators: list) -> str:
+    <span class="c1"># 1. Generate the initial draft</span>
+    draft = model.<span class="fn">complete</span>(prompt, max_tokens=<span class="p1">3000</span>).text
+    tree = <span class="fn">parse_text</span>(draft)
+
+    <span class="c1"># 2. Validate → patch only the failing nodes — full doc never re-sent</span>
+    <span class="k1">for</span> validator <span class="k1">in</span> validators:
+        <span class="k1">for</span> issue <span class="k1">in</span> <span class="fn">validator</span>(tree):
+            tree = <span class="fn">edit_doc</span>(tree, issue.fix_instruction, model=model)
+
+    <span class="k1">return</span> <span class="fn">serialize</span>(tree).<span class="fn">decode</span>()
+
+result = <span class="fn">generate_and_refine</span>(
+    <span class="s1">"Write a design doc for a rate-limiter."</span>,
+    model=my_model_client,
+    validators=[check_examples],
+)</pre>
+      </div>
+      <div class="callout" style="margin-top:16px;">
+        <div class="callout-label">Why this works</div>
+        <p>The validator receives the full DocTree — structural checks, word counts, heading hierarchy. The LLM fix call receives only the failing subtree. A 50-section doc with 3 failing sections costs 3× one-section input tokens, not 50×.</p>
+      </div>
+    </div>
+
+    <div id="pat-multi" class="tab-panel reveal">
+      <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+        <span class="codebox-lang">python</span>
+        <pre><span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> parse, serialize
+<span class="k1">from</span> docpatch.locator <span class="k1">import</span> CompositeLocator
+<span class="k1">from</span> docpatch.patcher.replace <span class="k1">import</span> ReplaceOperation
+<span class="k1">from</span> docpatch.splicer <span class="k1">import</span> splice
+<span class="k1">from</span> pathlib <span class="k1">import</span> Path
+
+data = Path(<span class="s1">"spec.md"</span>).<span class="fn">read_bytes</span>()
+tree = <span class="fn">parse</span>(data)
+
+model = my_model_client
+locator = <span class="fn">CompositeLocator</span>(model=model, threshold=<span class="p1">0.6</span>)
+patcher = <span class="fn">ReplaceOperation</span>(max_retry=<span class="p1">3</span>)
+
+<span class="c1"># Build patches independently — all reference the *original* tree</span>
+edits = [
+    <span class="s1">"Tighten the introduction"</span>,
+    <span class="s1">"Add a Redis failover note to the Storage section"</span>,
+    <span class="s1">"Shorten the Alternatives section to bullet points"</span>,
+]
+
+patches = []
+<span class="k1">for</span> instruction <span class="k1">in</span> edits:
+    result = locator.<span class="fn">locate</span>(tree, instruction)
+    <span class="k1">if</span> result.node_ids:
+        patch = patcher.<span class="fn">apply</span>(tree, result.node_ids[<span class="p1">0</span>], instruction, model)
+        patches.<span class="fn">append</span>(patch)
+
+<span class="c1"># Apply atomically — ordering irrelevant, conflicts raise SpliceError</span>
+new_tree = <span class="fn">splice</span>(tree, patches)
+Path(<span class="s1">"spec.md"</span>).<span class="fn">write_bytes</span>(<span class="fn">serialize</span>(new_tree))</pre>
+      </div>
+      <div class="callout" style="margin-top:16px;">
+        <div class="callout-label">Atomicity guarantee</div>
+        <p>All patches reference node IDs from the original tree. <code>splice()</code> applies them in one pass — the document is never in a half-edited state. If two patches target the same node, <code>SpliceError.CONFLICT</code> is raised before any write occurs.</p>
+      </div>
+    </div>
+
+    <div id="pat-route" class="tab-panel reveal">
+      <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+        <span class="codebox-lang">python</span>
+        <pre><span class="k1">from</span> docpatch.core.types <span class="k1">import</span> NodeType
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+<span class="k1">from</span> docpatch.models.anthropic <span class="k1">import</span> AnthropicClient
+<span class="k1">from</span> docpatch.locator <span class="k1">import</span> CompositeLocator
+<span class="k1">from</span> docpatch.patcher.replace <span class="k1">import</span> ReplaceOperation
+<span class="k1">from</span> docpatch.splicer <span class="k1">import</span> splice
+
+<span class="c1"># Two models — different cost/quality trade-offs</span>
+prose_model = <span class="fn">OpenAIClient</span>(model=<span class="s1">"gpt-4o-mini"</span>)     <span class="c1"># fast, cheap</span>
+code_model  = <span class="fn">AnthropicClient</span>(model=<span class="s1">"claude-sonnet-4-6"</span>)  <span class="c1"># strong reasoning</span>
+
+<span class="k1">def</span> <span class="fn">route</span>(tree, node_id) -> object:
+    node = tree.<span class="fn">get</span>(node_id)
+    <span class="k1">if</span> node <span class="k1">and</span> node.type == NodeType.CODE_BLOCK:
+        <span class="k1">return</span> code_model
+    <span class="k1">return</span> prose_model
+
+<span class="c1"># Locate with either model (cheap model is fine for location)</span>
+locator = <span class="fn">CompositeLocator</span>(model=prose_model)
+patcher = <span class="fn">ReplaceOperation</span>()
+
+result = locator.<span class="fn">locate</span>(tree, instruction)
+<span class="k1">if</span> result.node_ids:
+    model = <span class="fn">route</span>(tree, result.node_ids[<span class="p1">0</span>])  <span class="c1"># choose model after locate</span>
+    patch = patcher.<span class="fn">apply</span>(tree, result.node_ids[<span class="p1">0</span>], instruction, model)
+    new_tree = <span class="fn">splice</span>(tree, [patch])</pre>
+      </div>
+      <div class="callout" style="margin-top:16px;">
+        <div class="callout-label">Cost model</div>
+        <p>Location is cheap: the locator only sees the content skeleton (headings, code block previews), not full body text. Route the expensive model only to nodes where the quality difference matters — typically code, tables, and structured JSON.</p>
+      </div>
+    </div>
+
+    <div id="pat-batch" class="tab-panel reveal">
+      <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+        <span class="codebox-lang">python</span>
+        <pre><span class="k1">from</span> concurrent.futures <span class="k1">import</span> ThreadPoolExecutor, as_completed
+<span class="k1">from</span> pathlib <span class="k1">import</span> Path
+<span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+<span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> serialize
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+<span class="k1">import</span> traceback
+
+<span class="c1"># Stateless — safe to share across threads</span>
+model = <span class="fn">OpenAIClient</span>(model=<span class="s1">"gpt-4o-mini"</span>)
+INSTRUCTION = <span class="s1">"Ensure every section has a concrete code example."</span>
+
+<span class="k1">def</span> <span class="fn">process</span>(p: Path) -> tuple[Path, str]:
+    tree = <span class="fn">open_doc</span>(p)
+    patched = <span class="fn">edit_doc</span>(tree, INSTRUCTION, model=model)
+    p.<span class="fn">write_bytes</span>(<span class="fn">serialize</span>(patched))
+    <span class="k1">return</span> p, <span class="s1">"ok"</span>
+
+files = <span class="fn">list</span>(Path(<span class="s1">"docs/"</span>).<span class="fn">glob</span>(<span class="s1">"**/*.md"</span>))
+
+<span class="k1">with</span> <span class="fn">ThreadPoolExecutor</span>(max_workers=<span class="p1">8</span>) <span class="k1">as</span> pool:
+    futures = {pool.<span class="fn">submit</span>(<span class="fn">process</span>, p): p <span class="k1">for</span> p <span class="k1">in</span> files}
+    <span class="k1">for</span> fut <span class="k1">in</span> <span class="fn">as_completed</span>(futures):
+        p = futures[fut]
+        <span class="k1">try</span>:
+            _, status = fut.<span class="fn">result</span>()
+            <span class="fn">print</span>(<span class="s1">f"✓ {p.name}"</span>)
+        <span class="k1">except</span> Exception:
+            <span class="fn">print</span>(<span class="s1">f"✗ {p.name}"</span>); <span class="fn">traceback</span>.<span class="fn">print_exc</span>()</pre>
+      </div>
+      <div class="callout" style="margin-top:16px;">
+        <div class="callout-label">Why it is safe</div>
+        <p><code>DocTree</code> is an immutable Pydantic model. <code>edit_doc()</code> returns a new tree — it never mutates the input. <code>OpenAIClient</code> holds no mutable state. All three facts together mean ThreadPoolExecutor needs no synchronization.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== SECTION 03: FRAMEWORK ADAPTERS ===== -->
+<section class="block" id="frameworks">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">03 / Frameworks</div>
+      <div>
+        <h2 class="section-title">One seam. Every framework.</h2>
+        <p class="section-lede">Adapting a new framework is one class, one method. The <code>ModelClient</code> protocol is the only bridge DocPatch needs.</p>
+      </div>
+    </div>
+
+    <!-- The protocol — shown once, always relevant -->
+    <div class="proto-box reveal" style="margin-bottom:48px;">
+      <div class="proto-box-head">
+        <strong>ModelClient protocol</strong>
+        <span style="color:var(--graphite-soft);">— implement this to connect any LLM</span>
+      </div>
+      <div class="codebox" style="border-radius:0 0 8px 8px;">
+        <span class="codebox-lang">python</span>
+        <pre><span class="k1">from</span> docpatch.models.base <span class="k1">import</span> ModelClient, ModelResponse
+<span class="k1">from</span> typing <span class="k1">import</span> Protocol, runtime_checkable
+
+@runtime_checkable
+<span class="k1">class</span> <span class="fn">ModelClient</span>(Protocol):
+    <span class="k1">def</span> <span class="fn">complete</span>(<span class="p1">self</span>, prompt: str, <span class="op">*</span>, max_tokens: int) -> ModelResponse: ...</pre>
+      </div>
+    </div>
+
+    <!-- Framework tabs -->
+    <div class="tab-list reveal">
+      <button class="tab-btn active" data-tab="fw-langchain">LangChain</button>
+      <button class="tab-btn" data-tab="fw-crewai">CrewAI</button>
+      <button class="tab-btn" data-tab="fw-schema">Generic OpenAI schema</button>
+      <button class="tab-btn" data-tab="fw-mcp">MCP <span class="badge badge-planned" style="margin-left:4px;">v0.9</span></button>
+    </div>
+
+    <div id="fw-langchain" class="tab-panel active reveal">
+      <div class="codebox" style="border-radius: 0 10px 0 0;">
+        <span class="codebox-lang">python — adapter</span>
+        <pre><span class="k1">from</span> langchain_core.language_models <span class="k1">import</span> BaseChatModel
+<span class="k1">from</span> langchain_core.messages <span class="k1">import</span> HumanMessage
+<span class="k1">from</span> docpatch.models.base <span class="k1">import</span> ModelResponse
+
+<span class="k1">class</span> <span class="fn">LangChainModelClient</span>:
+    <span class="s1">"""Adapt any LangChain BaseChatModel to DocPatch's ModelClient protocol."""</span>
+
+    <span class="k1">def</span> <span class="fn">__init__</span>(<span class="p1">self</span>, llm: BaseChatModel) -> None:
+        <span class="p1">self</span>._llm = llm
+
+    <span class="k1">def</span> <span class="fn">complete</span>(<span class="p1">self</span>, prompt: str, <span class="op">*</span>, max_tokens: int) -> ModelResponse:
+        msg = <span class="p1">self</span>._llm.<span class="fn">invoke</span>(
+            [<span class="fn">HumanMessage</span>(content=prompt)],
+            config={<span class="s1">"max_tokens"</span>: max_tokens},
+        )
+        text = msg.content <span class="k1">if isinstance</span>(msg.content, str) <span class="k1">else</span> <span class="fn">str</span>(msg.content)
+        usage = <span class="fn">getattr</span>(msg, <span class="s1">"usage_metadata"</span>, None)
+        <span class="k1">return</span> <span class="fn">ModelResponse</span>(
+            text=text,
+            tokens_in=<span class="fn">getattr</span>(usage, <span class="s1">"input_tokens"</span>, <span class="p1">0</span>),
+            tokens_out=<span class="fn">getattr</span>(usage, <span class="s1">"output_tokens"</span>, <span class="p1">0</span>),
+            model_id=<span class="fn">getattr</span>(<span class="p1">self</span>._llm, <span class="s1">"model_name"</span>, <span class="s1">""</span>),
+        )</pre>
+      </div>
+      <div class="codebox" style="border-radius: 0; border-top: 1px solid rgba(255,255,255,0.06); margin-top:0;">
+        <span class="codebox-lang">python — tool</span>
+        <pre><span class="k1">from</span> langchain_core.tools <span class="k1">import</span> tool
+<span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+<span class="k1">from</span> docpatch.parsers <span class="k1">import</span> get_parser, detect_format
+<span class="k1">from</span> pathlib <span class="k1">import</span> Path
+
+<span class="k1">def</span> <span class="fn">make_docpatch_tool</span>(llm: BaseChatModel):
+    client = <span class="fn">LangChainModelClient</span>(llm)
+
+    @tool
+    <span class="k1">def</span> <span class="fn">edit_document</span>(file_path: str, instruction: str) -> str:
+        <span class="s1">"""Edit a specific section of a document.
+        Surgical patching — only the relevant node is sent to the model.
+        Args: file_path (Markdown or JSON), instruction (what to change and where)."""</span>
+        p = <span class="fn">Path</span>(file_path)
+        tree = <span class="fn">open_doc</span>(p)
+        patched = <span class="fn">edit_doc</span>(tree, instruction, model=client)
+        parser = <span class="fn">get_parser</span>(<span class="fn">detect_format</span>(p, p.<span class="fn">read_bytes</span>()))
+        p.<span class="fn">write_bytes</span>(parser.<span class="fn">serialize</span>(patched))
+        <span class="k1">return</span> <span class="s1">f"Edited '{p.name}'"</span>
+
+    <span class="k1">return</span> edit_document</pre>
+      </div>
+      <div class="codebox" style="border-radius: 0 0 10px 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <span class="codebox-lang">python — agent</span>
+        <pre><span class="k1">from</span> langchain_openai <span class="k1">import</span> ChatOpenAI
+<span class="k1">from</span> langchain.agents <span class="k1">import</span> create_tool_calling_agent, AgentExecutor
+
+llm = <span class="fn">ChatOpenAI</span>(model=<span class="s1">"gpt-4o"</span>)
+tools = [<span class="fn">make_docpatch_tool</span>(llm)]
+
+agent = <span class="fn">create_tool_calling_agent</span>(llm, tools, prompt)
+executor = <span class="fn">AgentExecutor</span>(agent=agent, tools=tools)
+executor.<span class="fn">invoke</span>({<span class="s1">"input"</span>: <span class="s1">"Tighten the intro section in README.md"</span>})</pre>
+      </div>
+    </div>
+
+    <div id="fw-crewai" class="tab-panel reveal">
+      <div class="codebox" style="border-radius: 0 10px 0 0;">
+        <span class="codebox-lang">python — tool</span>
+        <pre><span class="k1">from</span> crewai.tools <span class="k1">import</span> tool <span class="k1">as</span> crewai_tool
+<span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+<span class="k1">from</span> docpatch.parsers <span class="k1">import</span> detect_format, get_parser
+<span class="k1">from</span> pathlib <span class="k1">import</span> Path
+
+@crewai_tool(<span class="s1">"Document Editor"</span>)
+<span class="k1">def</span> <span class="fn">edit_document</span>(file_path: str, instruction: str) -> str:
+    <span class="s1">"""Edit a specific section of a document with surgical precision.
+    Only the relevant passage is sent to the LLM — the rest is untouched.
+    A 100-page spec costs the same input tokens as a 1-page note."""</span>
+    model = <span class="fn">OpenAIClient</span>()           <span class="c1"># reads OPENAI_API_KEY from env</span>
+    p = <span class="fn">Path</span>(file_path)
+    tree = <span class="fn">open_doc</span>(p)
+    patched = <span class="fn">edit_doc</span>(tree, instruction, model=model)
+    parser = <span class="fn">get_parser</span>(<span class="fn">detect_format</span>(p, p.<span class="fn">read_bytes</span>()))
+    p.<span class="fn">write_bytes</span>(parser.<span class="fn">serialize</span>(patched))
+    <span class="k1">return</span> <span class="s1">f"Done: {instruction}"</span></pre>
+      </div>
+      <div class="codebox" style="border-radius: 0 0 10px 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <span class="codebox-lang">python — agent</span>
+        <pre><span class="k1">from</span> crewai <span class="k1">import</span> Agent, Task, Crew
+
+editor = <span class="fn">Agent</span>(
+    role=<span class="s1">"Technical Writer"</span>,
+    goal=<span class="s1">"Keep all documentation accurate and concise."</span>,
+    backstory=<span class="s1">"You improve technical documents section by section."</span>,
+    tools=[edit_document],
+    verbose=True,
+)
+
+task = <span class="fn">Task</span>(
+    description=<span class="s1">"Tighten the introduction and add an example to the Quick Start section in README.md."</span>,
+    expected_output=<span class="s1">"Confirmation that both sections were edited."</span>,
+    agent=editor,
+)
+
+<span class="fn">Crew</span>(agents=[editor], tasks=[task]).<span class="fn">kickoff</span>()</pre>
+      </div>
+    </div>
+
+    <div id="fw-schema" class="tab-panel reveal">
+      <p style="font-size:14px; color:var(--graphite); margin:20px 0 16px; line-height:1.6;">Register this JSON schema with AutoGen, Semantic Kernel, Haystack, or any OpenAI-style function-calling framework. The handler is the same <code>edit_document</code> function body regardless of framework.</p>
+      <div class="codebox" style="border-radius:10px 10px 0 0;">
+        <span class="codebox-lang">json — tool schema</span>
+        <pre>{
+  <span class="p1">"name"</span>: <span class="s1">"edit_document"</span>,
+  <span class="p1">"description"</span>: <span class="s1">"Edit a specific section of a document. Only the relevant node is patched — the rest is untouched. A 100-page doc costs the same as a 1-page note for a targeted edit."</span>,
+  <span class="p1">"parameters"</span>: {
+    <span class="p1">"type"</span>: <span class="s1">"object"</span>,
+    <span class="p1">"properties"</span>: {
+      <span class="p1">"file_path"</span>: {
+        <span class="p1">"type"</span>: <span class="s1">"string"</span>,
+        <span class="p1">"description"</span>: <span class="s1">"Path to the document (Markdown or JSON)."</span>
+      },
+      <span class="p1">"instruction"</span>: {
+        <span class="p1">"type"</span>: <span class="s1">"string"</span>,
+        <span class="p1">"description"</span>: <span class="s1">"Natural-language description of what to change and where."</span>
+      }
+    },
+    <span class="p1">"required"</span>: [<span class="s1">"file_path"</span>, <span class="s1">"instruction"</span>]
+  }
+}</pre>
+      </div>
+      <div class="codebox" style="border-radius: 0 0 10px 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <span class="codebox-lang">python — handler (framework-agnostic)</span>
+        <pre><span class="k1">from</span> pathlib <span class="k1">import</span> Path
+<span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+<span class="k1">from</span> docpatch.parsers <span class="k1">import</span> detect_format, get_parser
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+
+<span class="k1">def</span> <span class="fn">edit_document</span>(file_path: str, instruction: str) -> str:
+    p = <span class="fn">Path</span>(file_path)
+    model = <span class="fn">OpenAIClient</span>()
+    tree = <span class="fn">open_doc</span>(p)
+    patched = <span class="fn">edit_doc</span>(tree, instruction, model=model)
+    parser = <span class="fn">get_parser</span>(<span class="fn">detect_format</span>(p, p.<span class="fn">read_bytes</span>()))
+    p.<span class="fn">write_bytes</span>(parser.<span class="fn">serialize</span>(patched))
+    <span class="k1">return</span> <span class="s1">f"Edited '{p.name}'"</span>
+
+<span class="c1"># AutoGen:         autogen.register_function(edit_document, ...)</span>
+<span class="c1"># Semantic Kernel: kernel.add_function(plugin_name="docs", function=edit_document)</span>
+<span class="c1"># Haystack:        ComponentBase subclass wrapping the same body</span></pre>
+      </div>
+    </div>
+
+    <div id="fw-mcp" class="tab-panel reveal">
+      <div class="codebox" style="border-radius: 0 10px 10px 10px;">
+        <span class="codebox-lang">shell — planned v0.9</span>
+        <pre><span class="c1"># Install the MCP server extra</span>
+pip install <span class="s1">"docpatch[mcp]"</span>
+
+<span class="c1"># Run — exposes edit_document, open_doc, node inspection tools</span>
+<span class="c1"># over the Model Context Protocol on stdio or a TCP socket</span>
+docpatch mcp --transport stdio</pre>
+      </div>
+      <p style="font-size:13.5px; color:var(--graphite); margin-top:16px; line-height:1.6;">The MCP server will expose the full DocPatch pipeline as MCP tools: <code>open_doc</code>, <code>edit_doc</code>, <code>parse_text</code>, <code>inspect_tree</code>, and <code>list_nodes</code>. Any MCP-aware host (Claude Desktop, Cursor, Continue.dev) will be able to call them without a line of integration code.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== SECTION 04: CUSTOM PIPELINE ===== -->
+<section class="block" id="advanced">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-num">04 / Advanced</div>
+      <div>
+        <h2 class="section-title">Ground-up pipeline control.</h2>
+        <p class="section-lede">The protocols are <code>runtime_checkable</code>. Implement <code>Locator</code> or <code>ModelClient</code> yourself — DocPatch's splicer and storage work with any conforming object.</p>
+      </div>
+    </div>
+
+    <div class="integration-steps" style="display:flex; flex-direction:column; gap:0;">
+
+      <!-- Step A: Full pipeline -->
+      <div class="step reveal">
+        <div class="step-ord">A</div>
+        <div>
+          <h3>Full manual pipeline</h3>
+          <p>Every stage is individually importable and composable. The convenience API (<code>edit_doc</code>) is a thin wrapper over these exact calls.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> pathlib <span class="k1">import</span> Path
+<span class="k1">from</span> docpatch.parsers.markdown <span class="k1">import</span> parse, serialize
+<span class="k1">from</span> docpatch.locator <span class="k1">import</span> CompositeLocator
+<span class="k1">from</span> docpatch.patcher.replace <span class="k1">import</span> ReplaceOperation
+<span class="k1">from</span> docpatch.splicer <span class="k1">import</span> splice
+<span class="k1">from</span> docpatch.models.openai <span class="k1">import</span> OpenAIClient
+
+model   = <span class="fn">OpenAIClient</span>(model=<span class="s1">"gpt-4o-mini"</span>)
+locator = <span class="fn">CompositeLocator</span>(model=model, threshold=<span class="p1">0.6</span>)
+patcher = <span class="fn">ReplaceOperation</span>(max_retry=<span class="p1">3</span>)
+
+data = Path(<span class="s1">"spec.md"</span>).<span class="fn">read_bytes</span>()
+tree = <span class="fn">parse</span>(data)                                      <span class="c1"># 1. parse</span>
+
+result = locator.<span class="fn">locate</span>(tree, <span class="s1">"Tighten the Failure Modes section"</span>)
+<span class="k1">if</span> result.confidence < <span class="p1">0.6</span>:                              <span class="c1"># 2. locate</span>
+    <span class="k1">raise</span> <span class="fn">ValueError</span>(<span class="s1">f"Low confidence: {result.candidates}"</span>)
+
+patch    = patcher.<span class="fn">apply</span>(tree, result.node_ids[<span class="p1">0</span>],     <span class="c1"># 3. patch</span>
+               <span class="s1">"Tighten the Failure Modes section"</span>, model)
+
+new_tree = <span class="fn">splice</span>(tree, [patch])                         <span class="c1"># 4. splice</span>
+Path(<span class="s1">"spec.md"</span>).<span class="fn">write_bytes</span>(<span class="fn">serialize</span>(new_tree))         <span class="c1"># 5. serialize</span>
+
+<span class="fn">print</span>(<span class="s1">f"tokens in={patch.tokens_in} out={patch.tokens_out}"</span>)</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step B: Custom Locator -->
+      <div class="step reveal">
+        <div class="step-ord">B</div>
+        <div>
+          <h3>Custom Locator</h3>
+          <p>Bypass the LLM for location when the node ID is already known — e.g. returned by a vector search or a previous DocPatchLoader retrieval.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">from</span> docpatch.locator.base <span class="k1">import</span> LocateResult
+<span class="k1">from</span> docpatch.core.tree <span class="k1">import</span> DocTree
+
+<span class="k1">class</span> <span class="fn">DirectLocator</span>:
+    <span class="s1">"""Treat instruction as a literal node ID — zero model calls."""</span>
+
+    <span class="k1">def</span> <span class="fn">locate</span>(<span class="p1">self</span>, tree: DocTree, instruction: str) -> LocateResult:
+        <span class="k1">if</span> instruction <span class="k1">in</span> tree:
+            <span class="k1">return</span> <span class="fn">LocateResult</span>(node_ids=[instruction], confidence=<span class="p1">1.0</span>, method=<span class="s1">"direct"</span>)
+        <span class="k1">return</span> <span class="fn">LocateResult</span>(node_ids=[], confidence=<span class="p1">0.0</span>, method=<span class="s1">"direct"</span>)
+
+<span class="k1">class</span> <span class="fn">VectorLocator</span>:
+    <span class="s1">"""Use a vector DB query result (which carries node_id) to skip the LLM."""</span>
+
+    <span class="k1">def</span> <span class="fn">__init__</span>(<span class="p1">self</span>, vector_db) -> None:
+        <span class="p1">self</span>._db = vector_db
+
+    <span class="k1">def</span> <span class="fn">locate</span>(<span class="p1">self</span>, tree: DocTree, instruction: str) -> LocateResult:
+        results = <span class="p1">self</span>._db.<span class="fn">query</span>(<span class="fn">embed</span>(instruction), limit=<span class="p1">3</span>)
+        ids = [r[<span class="s1">"node_id"</span>] <span class="k1">for</span> r <span class="k1">in</span> results <span class="k1">if</span> r[<span class="s1">"node_id"</span>] <span class="k1">in</span> tree]
+        <span class="k1">return</span> <span class="fn">LocateResult</span>(
+            node_ids=ids[:<span class="p1">1</span>],
+            confidence=results[<span class="p1">0</span>][<span class="s1">"score"</span>] <span class="k1">if</span> ids <span class="k1">else</span> <span class="p1">0.0</span>,
+            candidates=ids[<span class="p1">1</span>:],
+            method=<span class="s1">"vector"</span>,
+        )</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step C: Custom ModelClient -->
+      <div class="step reveal">
+        <div class="step-ord">C</div>
+        <div>
+          <h3>Custom ModelClient</h3>
+          <p>Wrap any completion API — a local model, a proxy, a batch API — in the single <code>complete()</code> method. No base class to inherit, no registration required.</p>
+          <div class="codebox" style="margin-top:4px;">
+            <span class="codebox-lang">python</span>
+            <pre><span class="k1">import</span> requests
+<span class="k1">from</span> docpatch.models.base <span class="k1">import</span> ModelResponse
+
+<span class="k1">class</span> <span class="fn">OllamaClient</span>:
+    <span class="s1">"""Call a local Ollama instance — no API key, fully offline."""</span>
+
+    <span class="k1">def</span> <span class="fn">__init__</span>(<span class="p1">self</span>, model: str = <span class="s1">"llama3.2"</span>, base_url: str = <span class="s1">"http://localhost:11434"</span>) -> None:
+        <span class="p1">self</span>._model = model
+        <span class="p1">self</span>._url = <span class="s1">f"{base_url}/api/generate"</span>
+
+    <span class="k1">def</span> <span class="fn">complete</span>(<span class="p1">self</span>, prompt: str, <span class="op">*</span>, max_tokens: int) -> ModelResponse:
+        resp = requests.<span class="fn">post</span>(<span class="p1">self</span>._url, json={
+            <span class="s1">"model"</span>: <span class="p1">self</span>._model, <span class="s1">"prompt"</span>: prompt,
+            <span class="s1">"stream"</span>: False, <span class="s1">"options"</span>: {<span class="s1">"num_predict"</span>: max_tokens},
+        }, timeout=<span class="p1">120</span>)
+        resp.<span class="fn">raise_for_status</span>()
+        data = resp.<span class="fn">json</span>()
+        <span class="k1">return</span> <span class="fn">ModelResponse</span>(
+            text=data[<span class="s1">"response"</span>],
+            tokens_in=data.<span class="fn">get</span>(<span class="s1">"prompt_eval_count"</span>, <span class="p1">0</span>),
+            tokens_out=data.<span class="fn">get</span>(<span class="s1">"eval_count"</span>, <span class="p1">0</span>),
+            model_id=<span class="p1">self</span>._model,
+        )
+
+<span class="c1"># Works identically with all DocPatch operations</span>
+<span class="k1">from</span> docpatch <span class="k1">import</span> open_doc, edit_doc
+tree = <span class="fn">open_doc</span>(<span class="s1">"spec.md"</span>)
+patched = <span class="fn">edit_doc</span>(tree, <span class="s1">"Tighten the intro."</span>, model=<span class="fn">OllamaClient</span>())</pre>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /integration-steps -->
+
+    <!-- Protocol reference table -->
+    <div class="reveal" style="margin-top:64px;">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--graphite); letter-spacing:0.08em; text-transform:uppercase; border-top:1px solid var(--ink); padding-top:8px; margin-bottom:20px;">Protocol reference</div>
+      <div style="overflow-x:auto;">
+        <table class="proto-table">
+          <thead>
+            <tr>
+              <th>Protocol</th>
+              <th>Required method</th>
+              <th>Returns</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ModelClient</td>
+              <td><code>complete(prompt, *, max_tokens)</code></td>
+              <td><code>ModelResponse</code></td>
+              <td style="font-size:12.5px; color:var(--graphite);">Used by both locator and patcher. <code>runtime_checkable</code>.</td>
+            </tr>
+            <tr>
+              <td>Locator</td>
+              <td><code>locate(tree, instruction)</code></td>
+              <td><code>LocateResult</code></td>
+              <td style="font-size:12.5px; color:var(--graphite);">Can skip model entirely (e.g. <code>DirectLocator</code>).</td>
+            </tr>
+            <tr>
+              <td>Operation</td>
+              <td><code>apply(tree, target_id, instruction, model)</code><br><code>validate(patch, tree)</code></td>
+              <td><code>Patch</code><br><code>ValidationResult</code></td>
+              <td style="font-size:12.5px; color:var(--graphite);">Ships with <code>ReplaceOperation</code>. <code>insert</code>, <code>delete</code>, <code>move</code> in v0.4.</td>
+            </tr>
+            <tr>
+              <td>StorageAdapter</td>
+              <td><code>save(doc_id, bundle)</code><br><code>load(doc_id)</code></td>
+              <td><code>None</code><br><code>DocPatchBundle</code></td>
+              <td style="font-size:12.5px; color:var(--graphite);">Ships with <code>InMemoryStorage</code>, <code>SidecarStorage</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section style="padding: clamp(56px, 8vw, 96px) 0 0;">
+  <div class="container">
+    <div class="cta-inverted reveal">
+      <span class="eyebrow">Open source · Apache-2.0 core</span>
+      <h2>One node at a time.<br><em>Losslessly.</em></h2>
+      <p>DocPatch v0.1 ships with Markdown and JSON. DOCX, PDF, history, reference graph, context catalogue, and server come in subsequent releases.</p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="index.html" class="btn-primary">← Back to home</a>
+        <a href="https://github.com/docpatch/docpatch" class="btn-secondary" style="color:#FBFAF7; border-color:rgba(251,250,247,0.25);">GitHub ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <span class="footer-meta">DocPatch v0.1 · Apache-2.0 (core) · BSL-1.1 (server)</span>
+    <div class="footer-links">
+      <a href="https://github.com/docpatch/docpatch">GitHub</a>
+      <a href="https://github.com/docpatch/docpatch/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/docpatch/docpatch/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ===== TABS =====
+(function () {
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = btn.dataset.tab;
+      var parent = btn.closest('section') || document;
+      parent.querySelectorAll('.tab-btn').forEach(function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      parent.querySelectorAll('.tab-panel').forEach(function (p) {
+        p.classList.toggle('active', p.id === target);
+      });
+    });
+  });
+})();
+
+// ===== REVEAL ON SCROLL =====
+(function () {
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function(el) { el.classList.add('is-in'); });
+    return;
+  }
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.10 });
+  els.forEach(function (el) { obs.observe(el); });
+})();
+</script>
+</body>
+</html>
