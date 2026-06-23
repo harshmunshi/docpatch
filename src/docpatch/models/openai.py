@@ -8,7 +8,7 @@ from docpatch.models.base import ModelResponse
 try:
     import openai as _openai
 except ImportError:
-    _openai = None  # type: ignore[assignment]
+    _openai = None
 
 
 class OpenAIClient:

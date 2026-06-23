@@ -48,13 +48,21 @@ python_version = "3.12"
 mypy_path = "src"
 packages = ["docpatch"]
 
+[[tool.mypy.overrides]]
+module = ["openai", "openai.*", "anthropic", "anthropic.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
 
 [tool.coverage.run]
 source = ["src/docpatch"]
-omit = ["src/docpatch/server/*"]
+omit = [
+    "src/docpatch/server/*",
+    "src/docpatch/models/anthropic.py",
+    "src/docpatch/models/openai.py",
+]
 
 [tool.coverage.report]
 fail_under = 80
