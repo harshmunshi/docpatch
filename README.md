@@ -153,6 +153,17 @@ Options:
 
 ---
 
+## Integrations
+
+[integrations.md](integrations.md) covers three integration levels in depth:
+
+- **Streaming content** — `parse_text()` for in-memory strings and streamed LLM output (Anthropic, OpenAI, generic iterator)
+- **Agentic patterns** — generate → verify → patch refinement loops, atomic multi-patch transactions, model routing by node type, batch editing across document collections
+- **Framework adapters** — LangChain (`LangChainModelClient` + `@tool`), CrewAI (`@crewai_tool`), generic OpenAI function schema, MCP server (v0.9)
+- **Custom pipelines** — implementing `Locator`, `Operation`, and `ModelClient` from scratch; full protocol reference
+
+---
+
 ## Development
 
 ```bash

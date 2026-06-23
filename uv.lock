@@ -335,6 +335,11 @@ dependencies = [
 anthropic = [
     { name = "anthropic" },
 ]
+openai = [
+    { name = "openai" },
+]
+
+[package.dev-dependencies]
 dev = [
     { name = "hypothesis" },
     { name = "mypy" },
@@ -342,16 +347,9 @@ dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "python-dotenv" },
     { name = "ruff" },
     { name = "types-jinja2" },
-]
-openai = [
-    { name = "openai" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "python-dotenv" },
 ]
 
 [package.metadata]
@@ -359,26 +357,28 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.28" },
     { name = "blake3", specifier = ">=0.4" },
     { name = "click", specifier = ">=8.1" },
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.103" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "markdown-it-py", specifier = ">=3.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.30" },
     { name = "opentelemetry-api", specifier = ">=1.24" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-settings", specifier = ">=2.3" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "structlog", specifier = ">=24.1" },
-    { name = "types-jinja2", marker = "extra == 'dev'" },
 ]
-provides-extras = ["anthropic", "openai", "dev"]
+provides-extras = ["anthropic", "openai"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "python-dotenv", specifier = ">=1.2.2" }]
+dev = [
+    { name = "hypothesis", specifier = ">=6.103" },
+    { name = "mypy", specifier = ">=1.10" },
+    { name = "pre-commit", specifier = ">=3.7" },
+    { name = "pyright", specifier = ">=1.1" },
+    { name = "pytest", specifier = ">=8.2" },
+    { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "ruff", specifier = ">=0.4" },
+    { name = "types-jinja2" },
+]
 
 [[package]]
 name = "docstring-parser"
