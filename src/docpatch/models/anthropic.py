@@ -8,7 +8,7 @@ from docpatch.models.base import ModelResponse
 try:
     import anthropic as _anthropic
 except ImportError:
-    _anthropic = None  # type: ignore[assignment]
+    _anthropic = None
 
 
 class AnthropicClient:

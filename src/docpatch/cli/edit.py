@@ -98,7 +98,7 @@ def edit(
     click.echo(f"Wrote {len(output_bytes)} bytes to {out_path}")
 
 
-def _build_model(name: str, api_key: str | None) -> "ModelClient":
+def _build_model(name: str, api_key: str | None) -> ModelClient:
     if name == "mock":
         return MockModelClient()
     if name == "anthropic":
