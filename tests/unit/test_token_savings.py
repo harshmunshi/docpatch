@@ -54,6 +54,7 @@ def _render_replace_prompt(breadcrumb: str, target_id: str, node_type: str, cont
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def readme_bytes() -> bytes:
     return _README.read_bytes()
@@ -78,6 +79,7 @@ def target_node(readme_tree):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestTokenSavings:
     """Token-saving metrics for a targeted README edit."""

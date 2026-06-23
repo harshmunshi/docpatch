@@ -44,9 +44,7 @@ class SemanticLocator:
 
         # Map short aliases → real node IDs so the model never has to copy long strings.
         alias_to_id = {f"node_{i}": nid for i, (nid, _) in enumerate(skeleton)}
-        skeleton_text = "\n".join(
-            f"  node_{i}\t{label}" for i, (_, label) in enumerate(skeleton)
-        )
+        skeleton_text = "\n".join(f"  node_{i}\t{label}" for i, (_, label) in enumerate(skeleton))
         prompt = _PROMPT_TEMPLATE.format(skeleton=skeleton_text, instruction=instruction)
 
         resp = self._model.complete(prompt, max_tokens=self._max_tokens)
