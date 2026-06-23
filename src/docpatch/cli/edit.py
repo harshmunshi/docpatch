@@ -101,13 +101,14 @@ def edit(
 def _build_model(name: str, api_key: str | None) -> ModelClient:
     if name == "mock":
         return MockModelClient()
+    settings = Settings()
     if name == "anthropic":
         from docpatch.models.anthropic import AnthropicClient
 
-        return AnthropicClient(api_key=api_key)
+        return AnthropicClient(api_key=api_key or settings.anthropic_api_key)
     if name == "openai":
         from docpatch.models.openai import OpenAIClient
 
-        return OpenAIClient(api_key=api_key)
+        return OpenAIClient(api_key=api_key or settings.openai_api_key)
     click.echo(f"Unknown model: {name}. Use mock|anthropic|openai.", err=True)
     sys.exit(1)

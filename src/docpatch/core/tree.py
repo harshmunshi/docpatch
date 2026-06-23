@@ -79,29 +79,51 @@ class DocTree(BaseModel):
                 result.append((node.id, node.content))
         return result
 
-    def content_skeleton(self, preview_chars: int = 60) -> list[tuple[str, str]]:
-        """Like heading_skeleton but also surfaces code blocks and tables.
+    def content_skeleton(self, preview_chars: int = 80) -> list[tuple[str, str]]:
+        """Return [(node_id, label)] for every addressable node in the tree.
 
-        Returns [(node_id, label)] where label is the heading text for headings,
-        "[code: <first line>]" for code blocks, and "[table]" for tables.
-        Used by SemanticLocator so sub-section elements are addressable.
+        Covers headings, paragraphs, list items, code blocks, and tables so
+        the SemanticLocator can target body content, not just headings.
         """
         result: list[tuple[str, str]] = []
         for node in self.walk():
             if node.type in {NodeType.HEADING, NodeType.KEY_VALUE, NodeType.OBJECT}:
                 if node.content:
                     result.append((node.id, node.content))
+            elif node.type in {NodeType.PARAGRAPH, NodeType.LIST_ITEM, NodeType.BLOCKQUOTE}:
+                raw = node.content or (
+                    node.raw_span.decode("utf-8", errors="replace") if node.raw_span else ""
+                )
+                flat = " ".join(raw.split())
+                if flat:
+                    result.append((node.id, f"[para: {flat[:preview_chars]}]"))
             elif node.type == NodeType.CODE_BLOCK:
                 raw = node.content or (
                     node.raw_span.decode("utf-8", errors="replace") if node.raw_span else ""
                 )
-                # Flatten to one line so the model can scan it; preserve enough to identify content.
                 flat = " | ".join(ln.strip() for ln in raw.strip().splitlines() if ln.strip())
-                preview = flat[:preview_chars]
-                result.append((node.id, f"[code: {preview}]"))
+                result.append((node.id, f"[code: {flat[:preview_chars]}]"))
             elif node.type == NodeType.TABLE:
                 result.append((node.id, "[table]"))
         return result
+
+    def render_subtree(self, node_id: NodeRef) -> str:
+        """Return a plain-text rendering of a node and all its descendants.
+
+        Used to give the patcher model full section context rather than
+        just the target node's own content field.
+        """
+        node = self.get(node_id)
+        if node is None:
+            return ""
+        parts: list[str] = []
+        for n in self.walk(node):
+            text = n.content or (
+                n.raw_span.decode("utf-8", errors="replace") if n.raw_span else ""
+            )
+            if text.strip():
+                parts.append(text.strip())
+        return "\n".join(parts)
 
     def subtree_bytes(self, node_id: NodeRef) -> bytes | None:
         """Return raw_span of a node if available, else None."""

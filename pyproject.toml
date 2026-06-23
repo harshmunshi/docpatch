@@ -22,7 +22,9 @@ dependencies = [
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.28"]
-openai = ["openai>=1.30"]
+openai = [
+    "openai>=1.30",
+]
 
 [project.scripts]
 docpatch = "docpatch.cli:cli"

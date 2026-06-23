@@ -3,10 +3,14 @@ You are a document editor. Replace the target node's content according to the in
 BREADCRUMB (ancestor headings → sibling heading names only, no body):
 {{ breadcrumb }}
 
+SECTION CONTEXT (target node + all its children, for understanding only):
+{{ section_context }}
+
 TARGET NODE (id={{ target_id }}, type={{ node_type }}):
 {{ target_content }}
 
 INSTRUCTION: {{ instruction }}
 
-Respond with ONLY the replacement text for the node. No explanations, no markdown fences,
+Respond with ONLY the replacement text for the TARGET NODE. No explanations, no markdown fences,
 no extra commentary. The replacement must preserve the node's format and structure type.
+Output only the new content for the target node — not the whole section.

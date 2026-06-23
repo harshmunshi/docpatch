@@ -59,12 +59,15 @@ class ReplaceOperation:
             node.raw_span.decode("utf-8", errors="replace") if node.raw_span else ""
         )
 
+        section_context = tree.render_subtree(target_id)
+
         template = _JINJA_ENV.get_template("replace.j2")
         prompt = template.render(
             breadcrumb=breadcrumb,
             target_id=target_id,
             node_type=node.type,
             target_content=target_content,
+            section_context=section_context,
             instruction=instruction,
         )
 
