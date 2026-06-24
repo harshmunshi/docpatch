@@ -7,11 +7,11 @@ from typing import Any
 from docpatch.core.errors import ModelError
 from docpatch.models.base import ModelResponse
 
-_openai: Any = None
+_openai: Any
 try:
     import openai as _openai
 except ImportError:
-    pass
+    _openai = None
 
 
 class OpenAIClient:
