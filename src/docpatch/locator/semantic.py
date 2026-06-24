@@ -48,8 +48,7 @@ class SemanticLocator:
 
         alias_to_id = {f"node_{i}": nid for i, (nid, _, _) in enumerate(skeleton)}
         skeleton_text = "\n".join(
-            f"{'  ' * depth}node_{i}\t{label}"
-            for i, (_, label, depth) in enumerate(skeleton)
+            f"{'  ' * depth}node_{i}\t{label}" for i, (_, label, depth) in enumerate(skeleton)
         )
         prompt = _PROMPT_TEMPLATE.format(skeleton=skeleton_text, instruction=instruction)
 

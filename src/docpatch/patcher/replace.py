@@ -62,7 +62,9 @@ class ReplaceOperation:
             target_content = node.content or ""
         else:
             target_content = (
-                node.raw_span.decode("utf-8", errors="replace") if node.raw_span else node.content or ""
+                node.raw_span.decode("utf-8", errors="replace")
+                if node.raw_span
+                else node.content or ""
             )
 
         section_context = tree.render_subtree(target_id)
@@ -90,7 +92,7 @@ class ReplaceOperation:
             trailing = ""
             if node.raw_span:
                 stripped = node.raw_span.rstrip()
-                trailing = node.raw_span[len(stripped):].decode("utf-8", errors="replace")
+                trailing = node.raw_span[len(stripped) :].decode("utf-8", errors="replace")
             meta = {**node.metadata, "_trailing": trailing} if trailing else node.metadata
             new_node = node.replace(content=new_content, raw_span=None, children=(), metadata=meta)
             patch = Patch(

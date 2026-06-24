@@ -109,15 +109,33 @@ class SymbolicLocator:
             if section_id is not None:
                 # For flat trees (markdown), scan forward siblings; for nested trees, walk children.
                 section_content = tree.section_nodes(section_id)
-                after_scope = instruction[scope_m.end():].lower()
+                after_scope = instruction[scope_m.end() :].lower()
                 instr_words = set(re.findall(r"\w+", after_scope))
                 # Stopwords that are too common to be useful for scoring
-                _STOP = {"the", "a", "an", "to", "of", "in", "and", "or", "change",
-                         "update", "replace", "modify", "rename", "content", "text"}
+                _STOP = {
+                    "the",
+                    "a",
+                    "an",
+                    "to",
+                    "of",
+                    "in",
+                    "and",
+                    "or",
+                    "change",
+                    "update",
+                    "replace",
+                    "modify",
+                    "rename",
+                    "content",
+                    "text",
+                }
                 instr_words -= _STOP
                 _LEAF_TYPES = {
-                    NodeType.PARAGRAPH, NodeType.HEADING, NodeType.CODE_BLOCK,
-                    NodeType.TABLE_CELL, NodeType.INLINE,
+                    NodeType.PARAGRAPH,
+                    NodeType.HEADING,
+                    NodeType.CODE_BLOCK,
+                    NodeType.TABLE_CELL,
+                    NodeType.INLINE,
                 }
                 candidates_pool = []
                 for n in section_content:

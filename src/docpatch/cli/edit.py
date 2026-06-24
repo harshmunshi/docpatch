@@ -66,7 +66,9 @@ def edit(
     path = Path(file)
 
     console.print(Rule("[bold]DocPatch[/bold]", style="cyan"))
-    console.print(Panel(f"[italic]\"{instruction}\"[/italic]", title="Instruction", border_style="dim"))
+    console.print(
+        Panel(f'[italic]"{instruction}"[/italic]', title="Instruction", border_style="dim")
+    )
 
     # ── Step 1: Parse ──────────────────────────────────────────────────────────
     _step(1, "Parsing document")
@@ -112,7 +114,9 @@ def edit(
     target_node = tree.get(target_id)
     assert target_node is not None
 
-    _ok(f"Found [bold]{target_node.type}[/bold] node  ({locate_ms:.0f} ms,  confidence={locate_result.confidence:.2f})")
+    _ok(
+        f"Found [bold]{target_node.type}[/bold] node  ({locate_ms:.0f} ms,  confidence={locate_result.confidence:.2f})"
+    )
     _info("Node ID", target_id)
     _info("Method", locate_result.method)
 
@@ -146,7 +150,9 @@ def edit(
     patch = op.apply(tree, target_id, instruction, model)
     patch_ms = (time.perf_counter() - t0) * 1000
 
-    _ok(f"Replacement generated  ({patch_ms:.0f} ms,  in={patch.tokens_in} tok,  out={patch.tokens_out} tok)")
+    _ok(
+        f"Replacement generated  ({patch_ms:.0f} ms,  in={patch.tokens_in} tok,  out={patch.tokens_out} tok)"
+    )
 
     before = (target_node.content or "").strip()
     after = (patch.new_node.content or "").strip()
@@ -154,8 +160,12 @@ def edit(
     diff_table = Table.grid(padding=(0, 2))
     diff_table.add_column(style="dim", width=8)
     diff_table.add_column()
-    diff_table.add_row("[red]before[/red]", Text(before[:200] + ("…" if len(before) > 200 else ""), style="red"))
-    diff_table.add_row("[green]after[/green]", Text(after[:200] + ("…" if len(after) > 200 else ""), style="green"))
+    diff_table.add_row(
+        "[red]before[/red]", Text(before[:200] + ("…" if len(before) > 200 else ""), style="red")
+    )
+    diff_table.add_row(
+        "[green]after[/green]", Text(after[:200] + ("…" if len(after) > 200 else ""), style="green")
+    )
 
     console.print()
     console.print(Panel(diff_table, title="[dim]Diff[/dim]", border_style="dim", padding=(0, 1)))
@@ -196,9 +206,11 @@ def _build_model(name: str, api_key: str | None, settings: Settings) -> ModelCli
         return MockModelClient()
     if name == "anthropic":
         from docpatch.models.anthropic import AnthropicClient
+
         return AnthropicClient(api_key=api_key or settings.anthropic_api_key)
     if name == "openai":
         from docpatch.models.openai import OpenAIClient
+
         return OpenAIClient(api_key=api_key or settings.openai_api_key)
     _abort(f"Unknown model: {name}. Use mock|anthropic|openai.")
     raise SystemExit(1)  # unreachable, satisfies type checker

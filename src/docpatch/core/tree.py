@@ -130,9 +130,7 @@ class DocTree(BaseModel):
         parts: list[str] = []
         for n in self.walk(node):
             # Prefer raw_span to preserve markdown formatting for the model.
-            text = (
-                n.raw_span.decode("utf-8", errors="replace") if n.raw_span else n.content or ""
-            )
+            text = n.raw_span.decode("utf-8", errors="replace") if n.raw_span else n.content or ""
             if text.strip():
                 parts.append(text.strip())
         return "\n".join(parts)
@@ -165,7 +163,7 @@ class DocTree(BaseModel):
         # We use a simple heuristic: compare content length as a proxy isn't
         # reliable, so we inspect subsequent headings by type only.
         result: list[Node] = []
-        for sibling in siblings[idx + 1:]:
+        for sibling in siblings[idx + 1 :]:
             if sibling.type == NodeType.HEADING:
                 break
             result.append(sibling)
