@@ -7,28 +7,26 @@ from typing import Any
 from docpatch.core.errors import ModelError
 from docpatch.models.base import ModelResponse
 
-_openai: Any
-try:
-    import openai as _openai
-except ImportError:
-    _openai = None
-
 
 class OpenAIClient:
     """Thin wrapper around the OpenAI Chat Completions API."""
+
+    _client: Any
 
     def __init__(
         self,
         model: str = "gpt-4o-mini",
         api_key: str | None = None,
     ) -> None:
-        if _openai is None:
+        try:
+            import openai as _lib
+        except ImportError:
             raise ModelError(
                 ModelError.Kind.MISSING_EXTRA,
                 "Install openai extra: pip install docpatch[openai]",
-            )
+            ) from None
         self._model = model
-        self._client = _openai.OpenAI(api_key=api_key)
+        self._client = _lib.OpenAI(api_key=api_key)
 
     def complete(self, prompt: str, *, max_tokens: int) -> ModelResponse:
         try:
