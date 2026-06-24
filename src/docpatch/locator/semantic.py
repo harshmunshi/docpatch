@@ -10,20 +10,24 @@ from docpatch.locator.base import LocateResult
 from docpatch.models.base import ModelClient
 
 _PROMPT_TEMPLATE = """\
-You are a document locator. Given a document outline and an edit instruction,
-identify which node(s) should be targeted.
+You are a document locator. Given an indented document outline and an edit instruction,
+identify the single node that should be edited.
 
-DOCUMENT OUTLINE (each line is: alias<TAB>description):
+DOCUMENT OUTLINE (indentation = nesting depth; alias<TAB>label):
 {skeleton}
 
 INSTRUCTION: {instruction}
 
 Respond with JSON only, no prose:
-{{"node_ids": ["<alias1>", ...], "confidence": 0.0-1.0, "candidates": []}}
+{{"node_ids": ["<alias>"], "confidence": 0.0-1.0, "candidates": []}}
 
 Rules:
-- node_ids and candidates MUST be aliases copied verbatim from the alias column above
-  (e.g. "node_3"). Do NOT invent values or use the description text as an ID.
+- node_ids MUST contain exactly one alias copied verbatim from the outline above.
+- Pick the DEEPEST, MOST SPECIFIC node whose content matches what the instruction
+  wants to change. If the instruction says "in X section change Y", pick the Y node
+  inside X — not the X heading itself.
+- A section heading is only the right answer if the instruction explicitly asks to
+  rename the heading.
 - confidence=1.0 only when the match is unambiguous.
 - If uncertain, set confidence<0.7 and list all plausible aliases in candidates.
 - Return an empty node_ids list if nothing matches.
@@ -31,26 +35,27 @@ Rules:
 
 
 class SemanticLocator:
-    """LLM-backed locator. Sends content skeleton with short aliases — robust to long IDs."""
+    """LLM-backed locator. Sends indented outline with short aliases."""
 
     def __init__(self, model: ModelClient, max_tokens: int = 256) -> None:
         self._model = model
         self._max_tokens = max_tokens
 
     def locate(self, tree: DocTree, instruction: str) -> LocateResult:
-        skeleton = tree.content_skeleton(preview_chars=200)
+        skeleton = tree.content_skeleton(preview_chars=80)
         if not skeleton:
             return LocateResult(node_ids=[], confidence=0.0, method="semantic_no_skeleton")
 
-        # Map short aliases → real node IDs so the model never has to copy long strings.
-        alias_to_id = {f"node_{i}": nid for i, (nid, _) in enumerate(skeleton)}
-        skeleton_text = "\n".join(f"  node_{i}\t{label}" for i, (_, label) in enumerate(skeleton))
+        alias_to_id = {f"node_{i}": nid for i, (nid, _, _) in enumerate(skeleton)}
+        skeleton_text = "\n".join(
+            f"{'  ' * depth}node_{i}\t{label}"
+            for i, (_, label, depth) in enumerate(skeleton)
+        )
         prompt = _PROMPT_TEMPLATE.format(skeleton=skeleton_text, instruction=instruction)
 
         resp = self._model.complete(prompt, max_tokens=self._max_tokens)
         raw = _parse_response(resp.text)
 
-        # Resolve aliases back to real node IDs; drop anything unrecognised.
         good_ids = [alias_to_id[a] for a in raw.node_ids if a in alias_to_id]
         good_candidates = [alias_to_id[a] for a in raw.candidates if a in alias_to_id]
         confidence = raw.confidence if good_ids else 0.0
@@ -63,7 +68,6 @@ class SemanticLocator:
 
 
 def _parse_response(text: str) -> LocateResult:
-    """Parse the model's JSON response into a LocateResult."""
     try:
         clean = text.strip()
         if clean.startswith("```"):

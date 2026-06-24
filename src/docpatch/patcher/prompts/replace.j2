@@ -11,6 +11,11 @@ TARGET NODE (id={{ target_id }}, type={{ node_type }}):
 
 INSTRUCTION: {{ instruction }}
 
+{% if node_type == "code_block" %}
+Respond with ONLY the raw code — no fences, no language tag, no explanations.
+The surrounding code fences are added automatically.
+{% else %}
 Respond with ONLY the replacement text for the TARGET NODE. No explanations, no markdown fences,
-no extra commentary. The replacement must preserve the node's format and structure type.
+no extra commentary. Preserve the node's formatting (bold, italics, inline code, bullet markers).
 Output only the new content for the target node — not the whole section.
+{% endif %}

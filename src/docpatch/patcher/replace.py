@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 from docpatch.core.errors import PatchError
 from docpatch.core.node import Node
 from docpatch.core.tree import DocTree
-from docpatch.core.types import NodeRef
+from docpatch.core.types import NodeRef, NodeType
 from docpatch.models.base import ModelClient
 from docpatch.patcher.base import Patch, ValidationResult
 
@@ -55,9 +55,15 @@ class ReplaceOperation:
             raise PatchError(PatchError.Kind.TARGET_NOT_FOUND, target_id)
 
         breadcrumb = _build_breadcrumb(tree, target_id)
-        target_content = node.content or (
-            node.raw_span.decode("utf-8", errors="replace") if node.raw_span else ""
-        )
+        # CODE_BLOCK: use content (fence-stripped); the serializer owns the fences.
+        # Everything else: prefer raw_span so markdown formatting (bold, bullets,
+        # inline code) is preserved for the model — content is plain-text only.
+        if node.type == NodeType.CODE_BLOCK:
+            target_content = node.content or ""
+        else:
+            target_content = (
+                node.raw_span.decode("utf-8", errors="replace") if node.raw_span else node.content or ""
+            )
 
         section_context = tree.render_subtree(target_id)
 
@@ -79,7 +85,14 @@ class ReplaceOperation:
                 last_error = f"attempt {attempt + 1}: empty model response"
                 continue
 
-            new_node = node.replace(content=new_content, raw_span=None, children=())
+            # Carry original trailing whitespace so the serializer doesn't
+            # double-space tight list items by defaulting to \n\n.
+            trailing = ""
+            if node.raw_span:
+                stripped = node.raw_span.rstrip()
+                trailing = node.raw_span[len(stripped):].decode("utf-8", errors="replace")
+            meta = {**node.metadata, "_trailing": trailing} if trailing else node.metadata
+            new_node = node.replace(content=new_content, raw_span=None, children=(), metadata=meta)
             patch = Patch(
                 target_id=target_id,
                 operation="replace",

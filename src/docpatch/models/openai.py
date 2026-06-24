@@ -38,7 +38,18 @@ class OpenAIClient:
             raise ModelError(ModelError.Kind.API_ERROR, str(exc)) from exc
 
         choice = resp.choices[0]
-        text = choice.message.content or ""
+        finish = getattr(choice, "finish_reason", None)
+        if finish == "content_filter":
+            raise ModelError(ModelError.Kind.API_ERROR, "response blocked by content filter")
+        refusal = getattr(choice.message, "refusal", None)
+        if refusal:
+            raise ModelError(ModelError.Kind.API_ERROR, f"model refused: {refusal}")
+        text = choice.message.content
+        if not text:
+            raise ModelError(
+                ModelError.Kind.API_ERROR,
+                f"empty response content (finish_reason={finish!r})",
+            )
         usage = resp.usage
         return ModelResponse(
             text=text,
