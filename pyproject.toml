@@ -23,8 +23,15 @@ dependencies = [
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.28"]
-openai = [
+openai = ["openai>=1.30"]
+azure = [
     "openai>=1.30",
+    "azure-identity>=1.15",
+]
+azure-inference = [
+    "azure-ai-inference>=1.0",
+    "azure-core>=1.30",
+    "azure-identity>=1.15",
 ]
 
 [project.scripts]
@@ -52,7 +59,11 @@ mypy_path = "src"
 packages = ["docpatch"]
 
 [[tool.mypy.overrides]]
-module = ["openai", "openai.*", "anthropic", "anthropic.*"]
+module = [
+    "openai", "openai.*",
+    "anthropic", "anthropic.*",
+    "azure", "azure.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -65,6 +76,8 @@ omit = [
     "src/docpatch/server/*",
     "src/docpatch/models/anthropic.py",
     "src/docpatch/models/openai.py",
+    "src/docpatch/models/azure_openai.py",
+    "src/docpatch/models/azure_inference.py",
 ]
 
 [tool.coverage.report]
