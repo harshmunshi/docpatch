@@ -98,6 +98,8 @@ def _collect_blocks(tokens: list[Token]) -> list[_BlockInfo]:
             type_counter[node_type] = ord_ + 1
             content = tok.content or None
             meta = {"markup": tok.markup} if tok.markup else {}
+            if node_type == NodeType.CODE_BLOCK and tok.info:
+                meta["info"] = tok.info.strip()
             blocks.append(_BlockInfo(tok, tok, [], node_type, ord_, content, meta))
             i += 1
         else:
@@ -247,7 +249,12 @@ def _render_patched_leaf(node: Node) -> bytes:
         return f"{'#' * level} {content}\n\n".encode()
 
     if node.type == NodeType.PARAGRAPH:
-        return f"{content}\n\n".encode()
+        trailing = meta.get("_trailing", "\n\n")
+        return f"{content}{trailing}".encode()
+
+    if node.type == NodeType.LIST_ITEM:
+        markup = meta.get("markup", "-")
+        return f"{markup} {content}\n".encode()
 
     if node.type == NodeType.THEMATIC_BREAK:
         markup = meta.get("markup", "---")
