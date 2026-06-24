@@ -13,6 +13,7 @@ from docpatch.models.mock import MockModelClient
 
 # ── shared fixtures ─────────────────────────────────────────────────────────
 
+
 def _make_tree() -> DocTree:
     h_intro = Node(id="heading:root/intro#0", type=NodeType.HEADING, content="Introduction")
     p_intro = Node(
@@ -45,6 +46,7 @@ def _make_tree() -> DocTree:
 
 # ── _find_heading ────────────────────────────────────────────────────────────
 
+
 def test_find_heading_exact() -> None:
     tree = _make_tree()
     nid = _find_heading(tree, "Installation")
@@ -64,6 +66,7 @@ def test_find_heading_missing() -> None:
 
 # ── JSON pointer ─────────────────────────────────────────────────────────────
 
+
 def test_symbolic_json_pointer_by_id() -> None:
     tree = _make_tree()
     loc = SymbolicLocator()
@@ -73,6 +76,7 @@ def test_symbolic_json_pointer_by_id() -> None:
 
 
 # ── quoted heading (ambiguous) ───────────────────────────────────────────────
+
 
 def test_symbolic_quoted_heading_ambiguous() -> None:
     p1 = Node(id="p:root/a#0", type=NodeType.PARAGRAPH, content="duplicate")
@@ -87,6 +91,7 @@ def test_symbolic_quoted_heading_ambiguous() -> None:
 
 
 # ── heading path ─────────────────────────────────────────────────────────────
+
 
 def test_symbolic_heading_path() -> None:
     tree = _make_tree()
@@ -115,6 +120,7 @@ def test_symbolic_heading_path_match() -> None:
 
 # ── scoped section ───────────────────────────────────────────────────────────
 
+
 def test_symbolic_scoped_section_finds_leaf() -> None:
     tree = _make_tree()
     loc = SymbolicLocator()
@@ -142,6 +148,7 @@ def test_symbolic_scoped_section_unknown_section() -> None:
 
 # ── bare heading ambiguous ────────────────────────────────────────────────────
 
+
 def test_symbolic_bare_heading_ambiguous() -> None:
     h1 = Node(id="heading:root/api#0", type=NodeType.HEADING, content="API")
     h2 = Node(id="heading:root/api#1", type=NodeType.HEADING, content="API")
@@ -154,6 +161,7 @@ def test_symbolic_bare_heading_ambiguous() -> None:
 
 
 # ── SemanticLocator ──────────────────────────────────────────────────────────
+
 
 def test_semantic_locate_valid_response() -> None:
     tree = _make_tree()

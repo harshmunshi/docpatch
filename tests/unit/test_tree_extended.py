@@ -40,6 +40,7 @@ def _md_tree() -> DocTree:
 
 # ── content_skeleton ────────────────────────────────────────────────────────
 
+
 def test_content_skeleton_returns_triples() -> None:
     tree = _md_tree()
     skeleton = tree.content_skeleton()
@@ -84,6 +85,7 @@ def test_content_skeleton_depth_root_children_zero() -> None:
 
 # ── render_subtree ──────────────────────────────────────────────────────────
 
+
 def test_render_subtree_missing_node() -> None:
     tree = _md_tree()
     assert tree.render_subtree("nonexistent") == ""
@@ -108,6 +110,7 @@ def test_render_subtree_code_block() -> None:
 
 
 # ── section_nodes ───────────────────────────────────────────────────────────
+
 
 def _section_tree() -> DocTree:
     """heading → paragraph → heading (stops section), paragraph (outside)."""
@@ -156,6 +159,7 @@ def test_section_nodes_nested_heading_uses_children() -> None:
 
 
 # ── subtree_bytes ───────────────────────────────────────────────────────────
+
 
 def test_subtree_bytes_returns_raw_span() -> None:
     node = Node(
