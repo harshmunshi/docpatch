@@ -57,14 +57,14 @@ def test_content_skeleton_includes_paragraph() -> None:
     tree = _md_tree()
     skeleton = tree.content_skeleton()
     labels = [label for _, label, _ in skeleton]
-    assert any("[para:" in l for l in labels)
+    assert any("[para:" in lbl for lbl in labels)
 
 
 def test_content_skeleton_includes_code_block() -> None:
     tree = _md_tree()
     skeleton = tree.content_skeleton()
     labels = [label for _, label, _ in skeleton]
-    assert any("[code:" in l for l in labels)
+    assert any("[code:" in lbl for lbl in labels)
 
 
 def test_content_skeleton_includes_table() -> None:

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from docpatch.core.errors import ModelError
 from docpatch.models.base import ModelResponse
 
+_openai: Any = None
 try:
     import openai as _openai
 except ImportError:
-    _openai = None  # type: ignore[assignment]
+    pass
 
 
 class OpenAIClient:

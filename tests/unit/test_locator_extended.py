@@ -11,7 +11,6 @@ from docpatch.locator.semantic import SemanticLocator, _parse_response
 from docpatch.locator.symbolic import SymbolicLocator, _find_heading
 from docpatch.models.mock import MockModelClient
 
-
 # ── shared fixtures ─────────────────────────────────────────────────────────
 
 def _make_tree() -> DocTree:
@@ -158,7 +157,6 @@ def test_symbolic_bare_heading_ambiguous() -> None:
 
 def test_semantic_locate_valid_response() -> None:
     tree = _make_tree()
-    skeleton = tree.content_skeleton()
     alias = "node_0"  # first entry
     response = json.dumps({"node_ids": [alias], "confidence": 0.9, "candidates": []})
     model = MockModelClient(response)
