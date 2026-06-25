@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "docpatch"
-version = "0.1.6"
+version = "0.1.7"
 description = "Format-agnostic document editing for LLM agents"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -29,7 +29,7 @@ azure = [
     "azure-identity>=1.15",
 ]
 azure-inference = [
-    "azure-ai-inference>=1.0",
+    "azure-ai-inference>=1.0.0b1",
     "azure-core>=1.30",
     "azure-identity>=1.15",
 ]
